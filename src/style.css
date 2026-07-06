@@ -1,0 +1,257 @@
+:root {
+  --lp-bg: #f8fafc;
+  --lp-surface: #ffffff;
+  --lp-border: #e2e8f0;
+  --lp-text: #0f172a;
+  --lp-text-muted: #64748b;
+  --lp-sidebar-bg: #ffffff;
+  --lp-sidebar-active: #eff6ff;
+  --lp-primary: #3b82f6;
+  --lp-green: #22c55e;
+  --lp-red: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100vh;
+}
+
+/* App layout */
+.lp-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.lp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lp-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Sidebar */
+.lp-sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  background: var(--lp-sidebar-bg);
+  border-right: 1px solid var(--lp-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.lp-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.1rem 1.25rem;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--lp-text);
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.lp-logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #10b981);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.lp-nav {
+  padding: 0.5rem 0.5rem;
+  flex: 1;
+}
+
+.lp-nav-section {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  padding: 0.9rem 0.75rem 0.4rem;
+  font-weight: 600;
+}
+
+.lp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+}
+
+.lp-nav-item:hover {
+  background: #f1f5f9;
+}
+
+.lp-nav-item.active {
+  background: var(--lp-sidebar-active);
+  color: var(--lp-primary);
+  font-weight: 600;
+}
+
+.lp-nav-item .pi {
+  font-size: 1rem;
+}
+
+.lp-nav-sub {
+  padding-left: 2.4rem;
+  font-size: 0.86rem;
+}
+
+/* Topbar */
+.lp-topbar {
+  height: 60px;
+  flex-shrink: 0;
+  background: var(--lp-surface);
+  border-bottom: 1px solid var(--lp-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+}
+
+.lp-topbar-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.lp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lp-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.lp-icon-btn:hover {
+  background: #f1f5f9;
+}
+
+.lp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--lp-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Page header */
+.lp-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.lp-page-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.lp-breadcrumb {
+  font-size: 0.82rem;
+  color: var(--lp-text-muted);
+  margin-top: 0.15rem;
+}
+
+/* Filter bar */
+.lp-filter-bar {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+
+.lp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lp-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.lp-filter-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+/* Card wrapper for table */
+.lp-card {
+  background: var(--lp-surface);
+  border: 1px solid var(--lp-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lp-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--lp-border);
+}
+
+.lp-table-toolbar h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "custom-report-builder",
+  "private": true,
+  "version": "0.1.0",
+  "description": "LinePulse Custom Report Builder — kullanıcıların measure + dimension + grafik tipi seçerek kendi raporlarını kurabildiği dinamik rapor motoru (Vue 3 + PrimeVue, dummy data).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@primevue/themes": "^4.5.4",
+    "chart.js": "^4.5.1",
+    "chartjs-plugin-zoom": "^2.2.0",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.5.5",
+    "vue": "^3.5.39"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.7",
+    "vite": "^8.1.1"
+  }
+}
