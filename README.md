@@ -81,13 +81,6 @@ Unplanned) her grupta **%100'e tamamlanır** — gerçek LinePulse ile birebir.
 Formüller canlı LinePulse ekranlarından çıkarılıp gerçek verilerle doğrulanmıştır
 (bkz. `docs/HowWorksReports.md`).
 
-## Gerçek veriye geçiş
-
-1. `src/data/dummyData.js` içindeki `generateRows()` yerine gerçek API çağrısını
-   koy (alan adları `reportCatalog.js` ile eşleşsin).
-2. Gerekirse `reportCatalog.js`'te measure key/label ve num/den fonksiyonlarını
-   güncelle.
-3. `reportEngine.js` ve tüm UI değişmeden kalır.
 
 ## Teknolojiler
 
