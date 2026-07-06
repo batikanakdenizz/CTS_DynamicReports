@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'
 import DatePicker from 'primevue/datepicker'
@@ -52,78 +52,40 @@ const hasData = computed(() => selectedMeasures.value.length > 0 && report.value
 // --- Grafik ---
 const PALETTE = ['#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#eab308']
 
-// Chart.js instance'ını yakala (zoom sıfırlama + hover-focus için)
+// Chart.js instance'ını yakala (zoom sıfırlama için)
 const chartInstance = ref(null)
 const capturePlugin = {
   id: 'captureInstance',
   afterInit: (c) => { chartInstance.value = c },
 }
-const chartPlugins = [zoomPlugin, capturePlugin]
+
+// --- Hover-focus: ÇİZİM ANINDA globalAlpha ile soldurma ---
+// Renkleri mutasyona uğratmaz ve chart.update() ÇAĞIRMAZ. Böylece zoom + hover
+// birlikteyken güncelleme döngüsüne girip KİLİTLENMEZ (önceki bug'ın kök nedeni).
+// Fare bir seriye gelince o seri tam, diğerleri soluk çizilir; fare çıkınca
+// Chart.js normal çizer (otomatik geri döner). Zoom sırasında soldurma kapalı.
+let zoomingUntil = 0
+const markZooming = () => { zoomingUntil = Date.now() + 300 }
+
+const focusDimPlugin = {
+  id: 'focusDim',
+  beforeDatasetDraw(chart, args) {
+    chart.ctx.save()
+    if (chart.config.type === 'doughnut' || Date.now() < zoomingUntil) return
+    const active = chart.getActiveElements ? chart.getActiveElements() : []
+    if (active.length && args.index !== active[0].datasetIndex) {
+      chart.ctx.globalAlpha = 0.18
+    }
+  },
+  afterDatasetDraw(chart) {
+    chart.ctx.restore()
+  },
+}
+
+const chartPlugins = [zoomPlugin, capturePlugin, focusDimPlugin]
 
 function resetZoom() {
   chartInstance.value?.resetZoom?.()
-}
-
-// hex -> rgba (odaklanmayan serileri soluklaştırmak için)
-function fade(color, a = 0.15) {
-  if (typeof color !== 'string' || !color.startsWith('#')) return color
-  const n = parseInt(color.slice(1), 16)
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`
-}
-
-// Zoom (scroll) sırasında hover-focus'u baskıla — scroll ile odak değişmesin.
-let focusSuppressed = false
-let focusTimer = null
-function suppressFocusDuringZoom() {
-  focusSuppressed = true
-  clearTimeout(focusTimer)
-  focusTimer = setTimeout(() => {
-    focusSuppressed = false
-  }, 250)
-}
-
-// Taban renk daima PALETTE'ten (index'e göre) — chart verisine özel alan gömmeyiz.
-const baseColor = (i) => PALETTE[i % PALETTE.length]
-
-// Bir dataset'in/dilimin odak durumuna göre renklerini uygula.
-function paintFocus(chart, key) {
-  const isDonut = chart.config.type === 'doughnut'
-  if (isDonut) {
-    const ds = chart.data.datasets[0]
-    if (!ds) return
-    const focusIdx = key == null ? null : Number(key.slice(1))
-    ds.backgroundColor = chart.data.labels.map((_, i) =>
-      focusIdx === null || i === focusIdx ? baseColor(i) : fade(baseColor(i))
-    )
-  } else {
-    const focusDs = key == null ? null : Number(key.slice(1))
-    chart.data.datasets.forEach((ds, i) => {
-      const on = focusDs === null || i === focusDs
-      ds.backgroundColor = on ? baseColor(i) : fade(baseColor(i))
-      ds.borderColor = on ? baseColor(i) : fade(baseColor(i), 0.3)
-    })
-  }
-  chart.update('none')
-}
-
-// Chart üzerinde bir segmente GELİNCE onu odakla, diğerlerini soluklaştır.
-function handleHover(evt, elements, chart) {
-  if (focusSuppressed) return // zoom sırasında odak değiştirme
-  const isDonut = chartType.value === 'donut'
-  const key = elements.length
-    ? (isDonut ? 'i' + elements[0].index : 'd' + elements[0].datasetIndex)
-    : null
-  if (chart.__focusKey === key) return
-  chart.__focusKey = key
-  paintFocus(chart, key)
-}
-
-// Fare chart'tan ayrılınca odaklanmayı sıfırla (soluklaşma kalıcı olmasın).
-function restoreFocus() {
-  const chart = chartInstance.value
-  if (!chart || chart.__focusKey == null) return
-  chart.__focusKey = null
-  paintFocus(chart, null)
 }
 
 const groupLabel = (row) =>
@@ -177,7 +139,6 @@ const chartOptions = computed(() => {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    onHover: handleHover,
     interaction: { mode: 'nearest', intersect: true },
     plugins: {
       legend: { labels: { color: text } },
@@ -190,14 +151,14 @@ const chartOptions = computed(() => {
               pinch: { enabled: true },
               mode: 'y',
               // Zoom sırasında hover-focus'u baskıla (scroll ile odak değişmesin)
-              onZoomStart: () => { suppressFocusDuringZoom() },
-              onZoom: () => { suppressFocusDuringZoom() },
+              onZoomStart: () => { markZooming() },
+              onZoom: () => { markZooming() },
             },
             pan: {
               enabled: true,
               mode: 'xy',
-              onPanStart: () => { suppressFocusDuringZoom() },
-              onPan: () => { suppressFocusDuringZoom() },
+              onPanStart: () => { markZooming() },
+              onPan: () => { markZooming() },
             },
           },
     },
@@ -208,11 +169,6 @@ const chartOptions = computed(() => {
           y: { stacked, ticks: { color: text }, grid: { color: grid } },
         },
   }
-})
-
-// Veri/ölçüm/grafik tipi değişince odak durumunu sıfırla (renkler taban'a döner)
-watch(chartData, () => {
-  if (chartInstance.value) chartInstance.value.__focusKey = null
 })
 
 const donutNote = computed(
@@ -278,7 +234,7 @@ function resetAll() {
               />
             </div>
           </div>
-          <div class="cr-chart" @mouseleave="restoreFocus">
+          <div class="cr-chart">
             <Chart
               :type="chartJsType"
               :data="chartData"
