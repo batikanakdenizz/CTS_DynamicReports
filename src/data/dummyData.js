@@ -24,10 +24,11 @@ function randInt(min, max) {
   return Math.floor(rand(min, max + 1))
 }
 
-// tarih üret (geriye doğru n gün)
+// tarih üret (bugünden geriye doğru n gün) — veri her zaman "bugün"de biter
 function buildDates(days) {
   const out = []
-  const start = new Date(2026, 5, 5) // 05.06.2026
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
   for (let i = 0; i < days; i++) {
     const d = new Date(start)
     d.setDate(start.getDate() - i)

@@ -11,6 +11,25 @@
   --lp-red: #ef4444;
 }
 
+/* Koyu tema — lp-* değişkenlerini ve birkaç sabit rengi override eder.
+   PrimeVue bileşenleri darkModeSelector '.dark-mode' ile kendi karanlık
+   temasına zaten geçer; burası sadece kabuğun (shell) kendi CSS'i içindir. */
+.dark-mode {
+  --lp-bg: #0b1220;
+  --lp-surface: #131c2e;
+  --lp-border: #243449;
+  --lp-text: #e2e8f0;
+  --lp-text-muted: #93a4bd;
+  --lp-sidebar-bg: #0f1729;
+  --lp-sidebar-active: #17233b;
+}
+.dark-mode .lp-nav-item { color: #cbd5e1; }
+.dark-mode .lp-nav-item:hover { background: #17233b; }
+.dark-mode .lp-icon-btn { color: #93a4bd; }
+.dark-mode .lp-icon-btn:hover { background: #17233b; }
+.dark-mode .lp-field label,
+.dark-mode .lp-topbar-title { color: var(--lp-text); }
+
 * {
   box-sizing: border-box;
 }

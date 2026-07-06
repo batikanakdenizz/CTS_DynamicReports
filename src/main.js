@@ -6,6 +6,12 @@ import { definePreset } from '@primevue/themes'
 import 'primeicons/primeicons.css'
 import './style.css'
 import App from './App.vue'
+import { initTheme } from './lib/theme.js'
+import { initI18n } from './lib/i18n.js'
+
+// Kayıtlı tema / dil tercihini mount'tan önce uygula (flash olmasın)
+initTheme()
+initI18n()
 
 // LinePulse teması: PrimeVue Aura tabanı, blue primary + slate surface.
 // Renkler LinePulse'un gerçek CSS'inden (index-CBK92lIB.css) alınmıştır.

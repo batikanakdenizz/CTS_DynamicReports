@@ -31,26 +31,29 @@ const RAW = [
 ].map((m) => ({ ...m, kind: 'raw', agg: m.agg || 'sum' }));
 
 // ---------------- TÜRETİLMİŞ KPI'LAR ----------------
+// Beş loss kovasına ANLAMSAL renk verilir: Up Time yeşil (iyi), Rate/Reject sıcak
+// tonlar, Planned nötr gri-mavi (planlı → alarm değil), Unplanned kırmızı (kötü).
+// Böylece stacked grafik renkten okunur.
 const DERIVED = [
   {
-    key: 'upTime', label: 'Up Time %', format: 'pct', group: 'KPI',
+    key: 'upTime', label: 'Up Time %', format: 'pct', group: 'KPI', color: '#2aa46a',
     num: (r) => r.volume, den: (r) => r.theoVolume, scale: 100,
   },
   {
-    key: 'rejectLoss', label: 'Reject Loss %', format: 'pct', group: 'KPI',
+    key: 'rejectLoss', label: 'Reject Loss %', format: 'pct', group: 'KPI', color: '#e8683d',
     num: (r) => r.reject, den: (r) => r.theoVolume, scale: 100,
   },
   {
-    key: 'plannedDowntimeLoss', label: 'Planned Downtime Loss %', format: 'pct', group: 'KPI',
+    key: 'plannedDowntimeLoss', label: 'Planned Downtime Loss %', format: 'pct', group: 'KPI', color: '#6b7f99',
     num: (r) => r.plannedStopDuration * r.designTargetSpeed, den: (r) => r.theoVolume, scale: 100,
   },
   {
-    key: 'unplannedDowntimeLoss', label: 'Unplanned Downtime Loss %', format: 'pct', group: 'KPI',
+    key: 'unplannedDowntimeLoss', label: 'Unplanned Downtime Loss %', format: 'pct', group: 'KPI', color: '#d6455d',
     num: (r) => r.unplannedStopDuration * r.designTargetSpeed, den: (r) => r.theoVolume, scale: 100,
   },
   {
     // Kalan kayıp — 5 kova tam %100'e tamamlanır.
-    key: 'rateLoss', label: 'Rate Loss %', format: 'pct', group: 'KPI',
+    key: 'rateLoss', label: 'Rate Loss %', format: 'pct', group: 'KPI', color: '#e8a33d',
     num: (r) =>
       r.theoVolume - r.volume - r.reject -
       r.plannedStopDuration * r.designTargetSpeed -
@@ -58,21 +61,28 @@ const DERIVED = [
     den: (r) => r.theoVolume, scale: 100,
   },
   {
-    key: 'availability', label: 'Availability %', format: 'pct', group: 'KPI',
+    key: 'availability', label: 'Availability %', format: 'pct', group: 'KPI', color: '#2aa9bf',
     num: (r) => r.totalRuntime, den: (r) => r.scheduledTime, scale: 100,
   },
   {
-    key: 'totalLoss', label: 'Total Losses %', format: 'pct', group: 'KPI',
+    key: 'totalLoss', label: 'Total Losses %', format: 'pct', group: 'KPI', color: '#c0392b',
     num: (r) => r.theoVolume - r.volume, den: (r) => r.theoVolume, scale: 100,
   },
   {
-    key: 'mtbf', label: 'MTBF (min)', format: 'dec', group: 'KPI',
+    key: 'mtbf', label: 'MTBF (min)', format: 'dec', group: 'KPI', color: '#6366f1',
     num: (r) => r.totalRuntime, den: (r) => r.numberOfStops, scale: 1,
   },
 ].map((m) => ({ ...m, kind: 'derived' }));
 
 export const MEASURES = [...DERIVED, ...RAW];
 export const MEASURE_MAP = Object.fromEntries(MEASURES.map((m) => [m.key, m]));
+
+// Anlamsal rengi olmayan measure'lar (raw) ve donut kategorileri için modern,
+// hafif kırık tonlu kategorik palet (yan yana uyumlu; neon/cıvık değil).
+export const CHART_PALETTE = [
+  '#5b8ff9', '#61ddaa', '#657798', '#f6bd16', '#7262fd',
+  '#78d3f8', '#9661bc', '#f6903d', '#008685', '#f08bb4',
+];
 
 // MultiSelect için gruplu seçenek listesi
 export const MEASURE_OPTIONS = (() => {
@@ -99,7 +109,6 @@ export const DATE_GRANULARITIES = [
 ];
 
 export const CHART_TYPES = [
-  { label: 'Table', value: 'table', icon: 'pi pi-table' },
   { label: 'Bar', value: 'bar', icon: 'pi pi-chart-bar' },
   { label: 'Stacked', value: 'stacked', icon: 'pi pi-chart-bar' },
   { label: 'Line', value: 'line', icon: 'pi pi-chart-line' },
