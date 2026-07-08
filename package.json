@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "LinePulse Custom Report Builder — kullanıcıların measure + dimension + grafik tipi seçerek kendi raporlarını kurabildiği dinamik rapor motoru (Vue 3 + PrimeVue, dummy data).",
   "type": "module",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
