@@ -50,7 +50,7 @@ const makeDefaults = () => ({
   measures: ['upTime', 'unplannedDowntimeLoss', 'rateLoss', 'rejectLoss'],
   dimensions: ['line'],
   granularity: 'day',
-  chartType: 'stacked',
+  chartType: 'bar',
   lines: [DEFAULT_LINE],
   startDate: daysAgo(29),
   endDate: new Date(today),
@@ -466,7 +466,7 @@ function applyDef(def) {
   selectedMeasures.value = [...(def.measures ?? [])]
   selectedDimensions.value = [...(def.dimensions ?? [])]
   dateGranularity.value = def.granularity ?? 'day'
-  chartType.value = def.chartType ?? 'stacked'
+  chartType.value = def.chartType ?? 'bar'
   selectedLines.value = [...(def.lines ?? [])]
   startDate.value = fromISO(def.startDate)
   endDate.value = fromISO(def.endDate)
