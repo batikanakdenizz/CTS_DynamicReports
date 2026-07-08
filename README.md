@@ -1,87 +1,129 @@
 # LinePulse · Custom Report Builder
 
-Kullanıcıların, geliştiriciye ihtiyaç duymadan **kendi raporlarını sıfırdan
-tasarlayabildiği** bir dinamik rapor motoru. Kullanıcı hangi ölçümleri
-(measures/KPI), hangi kırılımlarla (dimensions) ve hangi grafik tipiyle (tablo /
-bar / stacked / line / donut) göreceğini seçer; sistem seçime göre **veri seti +
-grafik** üretir.
+A dynamic report engine that lets users **design their own reports without
+developer involvement**. Existing LinePulse report screens are static — users
+can only change filters. This project removes that limit: the user picks the
+measures (KPIs), the dimensions to break them down by, and the chart type;
+the system generates the **chart + data set** live from that selection.
 
-Mevcut LinePulse raporları statik ekranlardır (kullanıcı yalnızca filtre
-değiştirebilir). Bu proje o sınırı kaldırır: kullanıcı raporu kendisi kurgular.
+**🔗 Live demo:** https://batikanakdenizz.github.io/CTS_DynamicReports/
 
-> Vue 3 + PrimeVue 4 (Aura teması) + Chart.js ile yazılmıştır. Tüm veri
-> **dummy**'dir; gerçek API geldiğinde yalnızca veri kaynağı katmanı değişir,
-> UI ve dönüşüm mantığı aynı kalır.
+> All data is **dummy** (deterministic generator). When the real API is
+> connected, only the data-source layer changes; the report engine and the UI
+> stay the same.
 
-## Ekranlar
+## Features
 
-- **Line Daily KPI** — gerçek LinePulse'taki tablo raporunun birebir kabuğu (28
-  kolon, kolon bazlı filtre/sıralama, sayfalama). Referans/demo amaçlı.
-- **Custom Report** — asıl iş. Sağdaki *Report Builder* panelinden measure +
-  dimension + grafik tipi + filtre seçilir; solda grafik, altta tam genişlik
-  veri seti canlı güncellenir. Grafikte scroll ile zoom, seriye gelince odak
-  (diğerlerini soluklaştırma) gibi etkileşimler vardır.
+- **Report Builder panel** — measures, dimensions, date granularity
+  (day/week/month/quarter/year), chart type and filters (date range, line)
+  configured in one panel; the result updates instantly.
+- **4 chart types** — Bar, Stacked Bar, Line, Donut. When percentage and count
+  measures are selected together, a **dual Y axis** is applied automatically
+  (% on the left, counts on the right).
+- **Data set** — full-width table below the chart with sorting, pagination and
+  formatted numbers.
+- **Saved reports** — a configured report definition can be saved under a name
+  (localStorage), reloaded with one click, or deleted.
+- **Drill-down** — click a line's bar in the chart to drill into that line's
+  daily trend; step back with the "Back" button.
+- **Export** — Excel (`.xlsx` with raw numeric values), PDF (chart image +
+  formatted table), chart PNG download / copy to clipboard. Export libraries
+  (xlsx, jspdf) are **lazy-loaded** on click, so they don't inflate the initial
+  page load.
+- **Zoom & focus** — mouse-wheel zoom, drag to pan; hovering a series dims the
+  others (hover-focus).
+- **TR / EN localization** and **dark mode** — preferences persist in
+  localStorage; the OS theme is detected on first load.
+- **Line Daily KPI** — a reference shell of the real LinePulse 28-column table
+  report (per-column filtering/sorting/pagination).
 
-## Çalıştırma
+## Architecture
+
+A report is represented by a serializable **report definition** model:
+
+```js
+{ measures: [], dimensions: [], dateGranularity: 'day',
+  chartType: 'bar', filters: { dateFrom, dateTo, lines } }
+```
+
+`reportEngine.runReport(definition, records)` takes this definition: it
+filters the records, groups them by the selected dimensions, computes the
+measures and returns `{ columns, rows }`. The engine is a pure function,
+independent of both the UI and the data source — saving, restoring and
+(eventually) sending the definition to a backend as a query all work through
+this single model.
+
+### Derived KPIs and correct aggregation
+
+Derived KPIs (Up Time %, Rate/Reject/Downtime Loss %, Availability, MTBF) are
+defined in `reportCatalog.js` as **numerator/denominator (num/den)** functions.
+Percentages are **never averaged** when grouping: numerators and denominators
+are summed row by row first, then the ratio is computed. As a result, the five
+loss buckets (Up Time + Rate + Reject + Planned + Unplanned) always add up to
+**100%** in every group and at every granularity — matching the real LinePulse
+exactly. The formulas were extracted from live LinePulse screens and verified
+against real data (see `docs/HowWorksReports.md`).
+
+## Tech Stack
+
+Vue 3 (Composition API) · PrimeVue 4 (Aura, custom LinePulse theme) ·
+Chart.js 4 · chartjs-plugin-zoom · SheetJS (xlsx) · jsPDF + autotable · Vite
+
+## Getting Started
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # üretim derlemesi -> dist/
-npm run preview    # derlemeyi yerelde önizle
+npm run dev        # http://localhost:5173/CTS_DynamicReports/
+npm run build      # production build -> dist/
+npm run preview    # preview the build locally
 ```
 
-## Proje yapısı
+## Project Structure
 
 ```
 .
+├── .github/workflows/deploy.yml   # automatic GitHub Pages deploy (CI/CD)
 ├── index.html
-├── vite.config.js
-├── package.json
-├── docs/                     # iş tanımı ve araştırma notları
-│   ├── job.md                # istenen iş
-│   ├── HowWorksReports.md    # LinePulse raporlarının analizi + doğrulanmış KPI formülleri
-│   └── design/               # tasarım eskizleri
+├── vite.config.js                 # base: /CTS_DynamicReports/ (Pages subpath)
+├── docs/
+│   ├── job.md                     # task definition
+│   ├── HowWorksReports.md         # LinePulse report analysis + verified KPI formulas
+│   └── design/                    # design sketches
 └── src/
-    ├── main.js               # PrimeVue kurulumu (LinePulse teması)
-    ├── App.vue               # basit view yönlendirme (router yerine)
-    ├── style.css
+    ├── main.js                    # PrimeVue setup (LinePulse theme)
+    ├── App.vue                    # simple view routing
     ├── layout/
-    │   ├── AppSidebar.vue     # LinePulse sol menüsü
-    │   └── AppTopbar.vue
+    │   ├── AppSidebar.vue         # LinePulse side menu
+    │   └── AppTopbar.vue          # title + language/theme switches
     ├── views/
-    │   ├── LineDailyKpi.vue   # tablo raporu (statik kabuk)
-    │   └── CustomReport.vue   # rapor oluşturucu (asıl ekran)
+    │   ├── CustomReport.vue       # report builder (the main screen)
+    │   └── LineDailyKpi.vue       # 28-column table report (reference shell)
     ├── data/
-    │   ├── dummyData.js       # deterministik dummy kayıtlar + COLUMNS (ortak veri kaynağı)
-    │   └── reportCatalog.js   # MEASURES (ham + türetilmiş) & DIMENSIONS kataloğu
+    │   ├── dummyData.js           # deterministic dummy records (line × day)
+    │   └── reportCatalog.js       # MEASURES (raw + derived) & DIMENSIONS catalog
     └── lib/
-        └── reportEngine.js    # report definition -> { columns, rows } (filtre + group-by + hesap)
+        ├── reportEngine.js        # definition -> { columns, rows } (filter + group-by + compute)
+        ├── i18n.js                # lightweight TR/EN translation layer
+        └── theme.js               # dark-mode state
 ```
 
-## Mimari (kritik parça)
+## Deployment
 
-Rapor bir **report definition** modeliyle temsil edilir:
+Every push to `master` is automatically built and published to GitHub Pages
+via GitHub Actions (`.github/workflows/deploy.yml`). No manual deploy is
+needed; run status can be monitored on the repo's **Actions** tab.
 
-```js
-{ measures: [], dimensions: [], dateGranularity: 'day', filters: { dateFrom, dateTo, lines } }
-```
+## Switching to Real Data
 
-`reportEngine.runReport(definition, records)` bu tanımı alır; kayıtları filtreler,
-seçilen dimension'lara göre gruplar ve measure'ları hesaplar.
+1. Replace `generateRows()` in `src/data/dummyData.js` with the real API call
+   (field names must match `reportCatalog.js`).
+2. If needed, update measure keys/labels and num/den functions in
+   `reportCatalog.js`.
+3. `reportEngine.js` and the entire UI remain unchanged.
 
-### Türetilmiş KPI'lar ve doğru aggregation
+## Roadmap
 
-Türetilmiş KPI'lar (Up Time %, Rate/Reject/Downtime Loss %, Availability, MTBF)
-`reportCatalog.js` içinde **pay/payda (num/den)** fonksiyonlarıyla tanımlıdır.
-Gruplarken yüzdeler **ortalanmaz**: önce pay ve payda satır satır toplanır, sonra
-oran hesaplanır. Böylece beş loss kovası (Up Time + Rate + Reject + Planned +
-Unplanned) her grupta **%100'e tamamlanır** — gerçek LinePulse ile birebir.
-
-Formüller canlı LinePulse ekranlarından çıkarılıp gerçek verilerle doğrulanmıştır
-(bkz. `docs/HowWorksReports.md`).
-
-
-## Teknolojiler
-
-Vue 3 · PrimeVue 4 · Chart.js 4 · chartjs-plugin-zoom · Vite
+- [ ] Connect real dummy/API data (field mapping)
+- [ ] Additional dimensions: Production Center, Shift, Machine, Stop Reason
+- [ ] Combo chart (stacked bar + Uptime line) and KPI cards
+- [ ] Unit tests for the report engine (100% loss-invariant check)
