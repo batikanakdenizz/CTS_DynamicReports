@@ -46,6 +46,25 @@ const LinePulsePreset = definePreset(Aura, {
           900: '#0f172a',
           950: '#020617'
         }
+      },
+      // Koyu tema yüzeyleri kabuğun lacivert tonlarıyla hizalı (style.css .dark-mode):
+      // 950 = --lp-bg, 900 = --lp-surface, 700 = --lp-border. Tanımlanmazsa Aura
+      // varsayılan nötr griye düşer ve Drawer/panel'ler kabukla uyumsuz görünür.
+      dark: {
+        surface: {
+          0: '#ffffff',
+          50: '#f1f5fa',
+          100: '#e2e8f2',
+          200: '#c6d1e2',
+          300: '#9fb0c9',
+          400: '#7189a8',
+          500: '#4d6890',
+          600: '#375179',
+          700: '#243449',
+          800: '#1a2740',
+          900: '#131c2e',
+          950: '#0b1220'
+        }
       }
     }
   }

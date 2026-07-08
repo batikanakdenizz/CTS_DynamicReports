@@ -857,7 +857,7 @@ onMounted(() => {
 .cr-field > label {
   font-size: 0.76rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--lp-text-muted); /* temaya duyarlı — sabit renk koyu temada okunmuyordu */
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
