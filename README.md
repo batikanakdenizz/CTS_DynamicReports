@@ -121,9 +121,4 @@ needed; run status can be monitored on the repo's **Actions** tab.
    `reportCatalog.js`.
 3. `reportEngine.js` and the entire UI remain unchanged.
 
-## Roadmap
 
-- [ ] Connect real dummy/API data (field mapping)
-- [ ] Additional dimensions: Production Center, Shift, Machine, Stop Reason
-- [ ] Combo chart (stacked bar + Uptime line) and KPI cards
-- [ ] Unit tests for the report engine (100% loss-invariant check)
