@@ -60,7 +60,7 @@ function dimValue(record, dimKey, dateGranularity) {
  */
 export function runReport(def, records) {
   const { measures = [], dimensions = [], dateGranularity = 'day', filters = {} } = def;
-  const { dateFrom, dateTo, lines } = filters;
+  const { dateFrom, dateTo, lines, machines, products } = filters;
 
   // 1) FİLTRELE
   const fromT = dateFrom ? new Date(dateFrom).setHours(0, 0, 0, 0) : null;
@@ -70,6 +70,8 @@ export function runReport(def, records) {
     if (fromT != null && t < fromT) return false;
     if (toT != null && t > toT) return false;
     if (lines && lines.length && !lines.includes(r.line)) return false;
+    if (machines && machines.length && !machines.includes(r.machine)) return false;
+    if (products && products.length && !products.includes(r.product)) return false;
     return true;
   });
 
