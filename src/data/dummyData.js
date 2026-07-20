@@ -1,6 +1,17 @@
 // Dummy veri üreteci — Line Daily KPI raporu için.
 // Formüller HowWorksReports.md (E2) bölümünden, gerçek verilerle doğrulanmış hâlleriyle
 // uygulanmıştır; böylece UpTime% + RateLoss% + RejectLoss% + PlannedDT% + UnplannedDT% = %100.
+import {
+  LINE_TOPOLOGY,
+  MACHINE_SPEED,
+  MACHINE_PRODUCTS,
+  ALL_MACHINES,
+  ALL_PRODUCTS,
+  machinesForLines,
+  productsForMachines,
+} from './lineTopology.js'
+
+export { ALL_MACHINES, ALL_PRODUCTS, machinesForLines, productsForMachines }
 
 const LINES = ['Link-up 38', 'Link-Up-37']
 const DESIGN_SPEED = 8400 // adet/dk
@@ -150,3 +161,117 @@ export const COLUMNS = [
 ]
 
 export const LINE_OPTIONS = LINES.map((l) => ({ label: l, value: l }))
+
+// ---------------- CASCADE (bağlı filtre) DEMO VERİSİ ----------------
+// Custom Report'un "bağlı filtreler" özelliği için AYRI bir üreteç: yukarıdaki
+// generateRows/COLUMNS/LINES'a (Line Daily KPI ekranı de bunları kullanıyor)
+// dokunmuyoruz — satır granülerliği hat×gün×makineye çıkınca o ekranın satır/
+// kolon sayısı sessizce değişmesin diye. Topoloji (Line->Machine->Product
+// ilişkisi) lineTopology.js'te.
+//
+// Kendi izole PRNG'si: yukarıdaki `rng` const'tur ve generateRows() hiç
+// reseed etmez (bu dosyanın var olan davranışı — dokunulmadı). Cascade
+// üretecinin kendi seed'li, kendi çağrısında sıfırlanan PRNG'si olmalı ki
+// generateRows'un dizisiyle karışmasın ve her çağrıda aynı sonucu versin.
+function cascadeMulberry32(seed) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+let cascadeRng = cascadeMulberry32(20260812)
+function randC(min, max) {
+  return cascadeRng() * (max - min) + min
+}
+function randIntC(min, max) {
+  return Math.floor(randC(min, max + 1))
+}
+
+// makeRow ile aynı KPI matematiği — sabit DESIGN_SPEED yerine makineye özel hız.
+function makeCascadeRow(line, machine, product, date) {
+  const speed = MACHINE_SPEED[machine]
+  const scheduled = 1440
+  const calendar = 1440
+  const theoVolume = Math.round(speed * scheduled * randC(0.98, 1.05))
+
+  const uptimeFrac = randC(0.2, 0.75)
+  const rejectFrac = randC(0.03, 0.06)
+  const plannedFrac = cascadeRng() < 0.6 ? 0 : randC(0.0, 0.03)
+  const unplannedFrac = randC(0.08, 0.18)
+  const rateFrac = Math.max(0, 1 - uptimeFrac - rejectFrac - plannedFrac - unplannedFrac)
+
+  const volume = Math.round(uptimeFrac * theoVolume)
+  const reject = Math.round(rejectFrac * theoVolume)
+  const targetVolume = Math.round(theoVolume * 0.955)
+
+  const plannedStopDur = +((plannedFrac * theoVolume) / speed).toFixed(2)
+  const unplannedStopDur = +((unplannedFrac * theoVolume) / speed).toFixed(2)
+
+  const runningDuration = +(volume / speed).toFixed(2)
+  const lowSpeedDuration = +(rateFrac * scheduled).toFixed(2)
+  const totalRuntime = +(runningDuration + lowSpeedDuration).toFixed(2)
+
+  const numberOfStops = randIntC(12, 45)
+  const numberOfShortStops = randIntC(4, numberOfStops - 2)
+  const breakdown = randIntC(0, 3)
+  const processStops = randIntC(0, 6)
+  const noDefCode = randIntC(0, 10)
+  const plannedStops = plannedFrac > 0 ? randIntC(1, 4) : 0
+
+  const mtbf = +(totalRuntime / numberOfStops).toFixed(2)
+
+  return {
+    line,
+    machine,
+    product,
+    date: fmtDate(date),
+    calendarTime: calendar,
+    scheduledTime: scheduled,
+    volume,
+    reject,
+    theoVolume,
+    targetVolume,
+    upTime: +(uptimeFrac * 100).toFixed(2),
+    rateLoss: +(rateFrac * 100).toFixed(2),
+    rejectLoss: +(rejectFrac * 100).toFixed(2),
+    plannedDowntimeLoss: +(plannedFrac * 100).toFixed(2),
+    unplannedDowntimeLoss: +(unplannedFrac * 100).toFixed(2),
+    numberOfStops,
+    numberOfShortStops,
+    breakdown,
+    processStops,
+    noDefCode,
+    plannedStops,
+    mtbf,
+    designTargetSpeed: speed,
+    plannedStopDuration: plannedStopDur,
+    unplannedStopDuration: unplannedStopDur,
+    noDataFlowDuration: +randC(0, 30).toFixed(2),
+    noDemandDuration: +randC(0, 40).toFixed(2),
+    runningDuration,
+    lowSpeedDuration,
+    totalRuntime,
+  }
+}
+
+function pickCascadeProduct(machine) {
+  const opts = MACHINE_PRODUCTS[machine]
+  return opts[randIntC(0, opts.length - 1)]
+}
+
+export function generateCascadeRows(days = 30) {
+  cascadeRng = cascadeMulberry32(20260812) // her çağrı aynı diziyi üretsin
+  const dates = buildDates(days)
+  const rows = []
+  for (const date of dates) {
+    for (const { line, machines } of LINE_TOPOLOGY) {
+      for (const machine of machines) {
+        rows.push(makeCascadeRow(line, machine, pickCascadeProduct(machine), date))
+      }
+    }
+  }
+  return rows
+}
