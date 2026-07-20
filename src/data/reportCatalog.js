@@ -96,6 +96,8 @@ export const MEASURE_OPTIONS = (() => {
 // Shell veri kaynağında mevcut kırılımlar: Line, Date (dd.mm.yyyy string).
 export const DIMENSIONS = [
   { key: 'line', label: 'Line', field: 'line' },
+  { key: 'machine', label: 'Machine', field: 'machine' },
+  { key: 'product', label: 'Product', field: 'product' },
   { key: 'date', label: 'Date', field: 'date', hasGranularity: true },
 ];
 export const DIMENSION_MAP = Object.fromEntries(DIMENSIONS.map((d) => [d.key, d]));
