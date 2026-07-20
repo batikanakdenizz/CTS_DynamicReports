@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import MultiSelect from 'primevue/multiselect'
 import SelectButton from 'primevue/selectbutton'
 import DatePicker from 'primevue/datepicker'
@@ -11,7 +11,12 @@ import Drawer from 'primevue/drawer'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 
-import { generateRows, LINE_OPTIONS } from '../data/dummyData.js'
+import {
+  generateCascadeRows,
+  LINE_OPTIONS,
+  machinesForLines,
+  productsForMachines,
+} from '../data/dummyData.js'
 import {
   MEASURE_OPTIONS,
   MEASURE_MAP,
@@ -27,8 +32,9 @@ import zoomPlugin from 'chartjs-plugin-zoom'
 // xlsx / jspdf ağır kütüphaneler — sadece export'a tıklanınca lazy-load edilir
 // (ilk sayfa yükü şişmesin diye dinamik import).
 
-// Ortak veri kaynağı (shell'in generateRows'u)
-const allRows = generateRows(30)
+// Cascade veri kaynağı (hat×gün×makine granülü — bkz. dummyData.js). Line
+// Daily KPI ekranı ayrı generateRows()'u kullanır, bu değişiklik onu etkilemez.
+const allRows = generateCascadeRows(30)
 
 // Kriter paneli (Report Builder) bir drawer içinde: Show/Hide ile açılıp kapanır
 const builderOpen = ref(false)
@@ -52,6 +58,8 @@ const makeDefaults = () => ({
   granularity: 'day',
   chartType: 'bar',
   lines: [DEFAULT_LINE],
+  machines: [],
+  products: [],
   startDate: daysAgo(29),
   endDate: new Date(today),
 })
@@ -65,6 +73,29 @@ const chartType = ref(d0.chartType)
 const startDate = ref(d0.startDate)
 const endDate = ref(d0.endDate)
 const selectedLines = ref(d0.lines)
+const selectedMachines = ref(d0.machines)
+const selectedProducts = ref(d0.products)
+
+// Bağlı (cascading) filtre seçenekleri: Machine, seçili Line'lara; Product,
+// seçili Machine'lere göre daralır. Boş seçim = "kısıtlama yok" (üst tüm
+// seçeneklerin birleşimi) — motorun filters.length===0 kuralıyla tutarlı.
+const machineOptions = computed(() =>
+  machinesForLines(selectedLines.value).map((m) => ({ label: m, value: m }))
+)
+const productOptions = computed(() => {
+  const basis = selectedMachines.value.length ? selectedMachines.value : machineOptions.value.map((o) => o.value)
+  return productsForMachines(basis).map((p) => ({ label: p, value: p }))
+})
+
+// Üst filtre daraldığında altta artık geçersiz olan seçimleri temizle.
+watch(selectedLines, () => {
+  const allowed = new Set(machineOptions.value.map((o) => o.value))
+  selectedMachines.value = selectedMachines.value.filter((m) => allowed.has(m))
+})
+watch(selectedMachines, () => {
+  const allowed = new Set(productOptions.value.map((o) => o.value))
+  selectedProducts.value = selectedProducts.value.filter((p) => allowed.has(p))
+})
 
 const dimensionOptions = DIMENSIONS.map((d) => ({ label: d.label, value: d.key }))
 const showGranularity = computed(() => selectedDimensions.value.includes('date'))
@@ -77,6 +108,8 @@ const definition = computed(() => ({
     dateFrom: startDate.value,
     dateTo: endDate.value,
     lines: selectedLines.value,
+    machines: selectedMachines.value,
+    products: selectedProducts.value,
   },
 }))
 
@@ -429,6 +462,8 @@ function resetAll() {
   dateGranularity.value = d.granularity
   chartType.value = d.chartType
   selectedLines.value = d.lines
+  selectedMachines.value = d.machines
+  selectedProducts.value = d.products
   startDate.value = d.startDate
   endDate.value = d.endDate
   drillStack.value = []
@@ -457,6 +492,8 @@ function currentDef() {
     granularity: dateGranularity.value,
     chartType: chartType.value,
     lines: [...selectedLines.value],
+    machines: [...selectedMachines.value],
+    products: [...selectedProducts.value],
     startDate: toISO(startDate.value),
     endDate: toISO(endDate.value),
   }
@@ -468,6 +505,8 @@ function applyDef(def) {
   dateGranularity.value = def.granularity ?? 'day'
   chartType.value = def.chartType ?? 'bar'
   selectedLines.value = [...(def.lines ?? [])]
+  selectedMachines.value = [...(def.machines ?? [])]
+  selectedProducts.value = [...(def.products ?? [])]
   startDate.value = fromISO(def.startDate)
   endDate.value = fromISO(def.endDate)
 }
@@ -696,6 +735,32 @@ onMounted(() => {
             :maxSelectedLabels="2"
             :selectedItemsLabel="t('sel.lines')"
             :placeholder="t('ph.line')"
+            class="cr-w"
+          />
+        </div>
+        <div class="cr-field">
+          <label>{{ t('field.machine') }}</label>
+          <MultiSelect
+            v-model="selectedMachines"
+            :options="machineOptions"
+            optionLabel="label"
+            optionValue="value"
+            :maxSelectedLabels="2"
+            :selectedItemsLabel="t('sel.machines')"
+            :placeholder="t('ph.machine')"
+            class="cr-w"
+          />
+        </div>
+        <div class="cr-field">
+          <label>{{ t('field.product') }}</label>
+          <MultiSelect
+            v-model="selectedProducts"
+            :options="productOptions"
+            optionLabel="label"
+            optionValue="value"
+            :maxSelectedLabels="2"
+            :selectedItemsLabel="t('sel.products')"
+            :placeholder="t('ph.product')"
             class="cr-w"
           />
         </div>
