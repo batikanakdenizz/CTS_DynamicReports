@@ -6,8 +6,8 @@
 
 import { MEASURE_MAP, DIMENSION_MAP } from '../data/reportCatalog.js';
 
-// Shell tarih formatı: 'dd.mm.yyyy'
-function parseDate(str) {
+// Shell tarih formatı: 'dd.mm.yyyy' — view'lerin tarih filtreleri de kullanır
+export function parseDate(str) {
   const [d, m, y] = str.split('.').map(Number);
   return new Date(y, m - 1, d);
 }
@@ -82,9 +82,6 @@ export function runReport(def, records) {
     const gkey = keyParts.join(' ‖ ');
     if (!groups.has(gkey)) groups.set(gkey, { keyParts, rows: [] });
     groups.get(gkey).rows.push(r);
-  }
-  if (dimensions.length === 0 && filtered.length) {
-    groups.set('__total__', { keyParts: ['Total'], rows: filtered });
   }
 
   // 3) MEASURE HESABI
