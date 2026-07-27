@@ -21,6 +21,7 @@ import {
   MEASURE_OPTIONS,
   MEASURE_MAP,
   DIMENSIONS,
+  DIMENSION_MAP,
   DATE_GRANULARITIES,
   CHART_TYPES,
   CHART_PALETTE,
@@ -116,6 +117,51 @@ const definition = computed(() => ({
 
 const report = computed(() => runReport(definition.value, allRows))
 const hasData = computed(() => selectedMeasures.value.length > 0 && report.value.rows.length > 0)
+
+// ==================== KÖK NEDEN ÖZETİ (AI'sız) ====================
+// Seçili birincil ölçüm için, henüz kırılım olarak seçilmemiş Machine/Product
+// boyutlarında motor (runReport) tekrar çalıştırılır; genel ortalamadan en çok
+// sapan alt grup bulunup bilgi kutusunda gösterilir. Model/tahmin yok — sadece
+// mevcut saf motorun birkaç kez daha çalıştırılmasıyla elde edilen bir kıyas.
+const ROOT_CAUSE_CANDIDATES = ['machine', 'product']
+
+const rootCause = computed(() => {
+  if (!hasData.value) return null
+  const measureKey = selectedMeasures.value[0]
+  if (!measureKey) return null
+
+  const baseRows = runReport({ ...definition.value, dimensions: [] }, allRows).rows
+  const baseline = baseRows[0]?.[measureKey]
+  if (baseline == null) return null
+
+  const candidates = ROOT_CAUSE_CANDIDATES.filter((d) => !selectedDimensions.value.includes(d))
+  let best = null
+  for (const dim of candidates) {
+    const subRows = runReport({ ...definition.value, dimensions: [dim] }, allRows).rows
+    if (subRows.length < 2) continue // tek grup varsa sapma anlamsız
+    for (const row of subRows) {
+      const v = row[measureKey]
+      if (v == null) continue
+      // Türetilmiş (yüzde) ölçülerde motor payda=0 olunca sessizce 0 döner
+      // (bkz. reportEngine.js) — bu gerçek bir sapma değil, veri yokluğu
+      // göstergesi; sürekli rastgele veride tam 0.00% pratikte gerçek bir
+      // değer olarak neredeyse hiç oluşmaz, o yüzden bu güvenli bir eleme.
+      if (MEASURE_MAP[measureKey]?.kind === 'derived' && v === 0) continue
+      const delta = v - baseline
+      if (!best || Math.abs(delta) > Math.abs(best.delta)) {
+        best = { dim, groupValue: row[dim], measureKey, measureValue: v, delta }
+      }
+    }
+  }
+  return best
+})
+
+function applyRootCause() {
+  const rc = rootCause.value
+  if (!rc) return
+  if (rc.dim === 'machine') selectedMachines.value = [rc.groupValue]
+  else if (rc.dim === 'product') selectedProducts.value = [rc.groupValue]
+}
 
 // --- Grafik ---
 // Measure'ın anlamsal rengi varsa onu, yoksa kategorik paletten sırayla renk ver.
@@ -882,6 +928,22 @@ onMounted(() => {
       </div>
     </Drawer>
 
+    <!-- Kök neden özeti: rootCause null ise render edilmez -->
+    <div v-if="rootCause" class="lp-card cr-card cr-rootcause" @click="applyRootCause">
+      <div class="cr-card-head">
+        <h3>{{ t('rootcause.title') }}</h3>
+      </div>
+      <p class="cr-rootcause-body">
+        <b>{{ MEASURE_MAP[rootCause.measureKey]?.label }}</b>
+        {{ t('rootcause.mostIn') }}
+        <b>{{ DIMENSION_MAP[rootCause.dim]?.label }} = {{ rootCause.groupValue }}</b>:
+        {{ formatValue(rootCause.measureValue, MEASURE_MAP[rootCause.measureKey]?.format) }}
+        ({{ rootCause.delta >= 0 ? '+' : '' }}{{ formatValue(rootCause.delta, MEASURE_MAP[rootCause.measureKey]?.format) }}
+        {{ t('rootcause.vsAvg') }})
+      </p>
+      <small class="cr-hint">{{ t('rootcause.hint') }}</small>
+    </div>
+
     <!-- ALT SATIR: veri seti (tam genişlik, soldan sağa) -->
     <div v-if="hasData" class="lp-card cr-card cr-dataset">
       <div class="cr-card-head">
@@ -962,6 +1024,19 @@ onMounted(() => {
 .cr-dataset {
   margin-top: 1.25rem;
   padding: 1rem 1.1rem;
+}
+.cr-rootcause {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  border: 1px dashed var(--lp-border);
+  transition: border-color 0.15s;
+}
+.cr-rootcause:hover {
+  border-color: var(--lp-primary, #3b82f6);
+}
+.cr-rootcause-body {
+  margin: 0.3rem 0;
 }
 /* Kriter paneli artık drawer içinde: dikey akış */
 .cr-config {
