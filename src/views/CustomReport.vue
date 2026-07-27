@@ -162,11 +162,15 @@ function resetZoom() {
   chartInstance.value?.resetZoom?.()
 }
 
-// --- Drill-down: bir öğeye tıkla → detaya in ---
-// Hat kırılımı varsa o hatta odaklanır; yalnızca hat kırılımındaysak o hattın
-// günlük trendine (date/day) ineriz. Her drill öncesi önceki durum yığına atılır;
-// "Geri" ile adım adım geri dönülür (Reset her şeyi değiştirdiği için ayrı tutuldu).
+// --- Drill-down: bir öğeye tıkla → detaya in (Line→Machine→Product→Date) ---
+// Her drill öncesi önceki durum yığına atılır; "Geri" ile adım adım geri
+// dönülür (Reset her şeyi değiştirdiği için ayrı tutuldu). Hiyerarşi
+// lineTopology.js'teki gerçek ilişkiyle tutarlı: Line'a tıkla → Machine
+// kırılımına in; Machine'e tıkla → Product kırılımına in; Product'a tıkla →
+// günlük trende in. Date'ten öteye inecek seviye yok (DRILL_NEXT'te karşılığı
+// olmadığı için orada durur).
 const drillStack = ref([])
+const DRILL_NEXT = { line: 'machine', machine: 'product', product: 'date' }
 
 function onChartClick(evt, elements) {
   if (!elements?.length) return
@@ -174,14 +178,16 @@ function onChartClick(evt, elements) {
   const row = report.value.rows[idx]
   if (!row) return
   const dims = selectedDimensions.value
-  const canDrill = dims.includes('line') && row.line != null
-  if (!canDrill) return
+  if (dims.length !== 1) return
+  const dim = dims[0]
+  const next = DRILL_NEXT[dim]
+  if (!next || row[dim] == null) return
   drillStack.value.push(currentDef()) // geri dönebilmek için önceki durumu sakla
-  selectedLines.value = [row.line]
-  if (dims.length === 1 && dims[0] === 'line') {
-    selectedDimensions.value = ['date']
-    dateGranularity.value = 'day'
-  }
+  if (dim === 'line') selectedLines.value = [row.line]
+  else if (dim === 'machine') selectedMachines.value = [row.machine]
+  else if (dim === 'product') selectedProducts.value = [row.product]
+  selectedDimensions.value = [next]
+  if (next === 'date') dateGranularity.value = 'day'
 }
 
 function drillBack() {
