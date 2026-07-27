@@ -69,8 +69,8 @@ function makeRow(line, date) {
   const reject = Math.round(rejectFrac * theoVolume)
   const targetVolume = Math.round(theoVolume * 0.955)
 
-  const plannedStopDur = +(plannedFrac * theoVolume / DESIGN_SPEED).toFixed(2)
-  const unplannedStopDur = +(unplannedFrac * theoVolume / DESIGN_SPEED).toFixed(2)
+  const plannedStopDur = +((plannedFrac * theoVolume) / DESIGN_SPEED).toFixed(2)
+  const unplannedStopDur = +((unplannedFrac * theoVolume) / DESIGN_SPEED).toFixed(2)
 
   const runningDuration = +(volume / DESIGN_SPEED).toFixed(2)
   const lowSpeedDuration = +(rateFrac * scheduled).toFixed(2)
@@ -113,7 +113,7 @@ function makeRow(line, date) {
     noDemandDuration: +rand(0, 40).toFixed(2),
     runningDuration,
     lowSpeedDuration,
-    totalRuntime
+    totalRuntime,
   }
 }
 
@@ -157,7 +157,7 @@ export const COLUMNS = [
   { field: 'noDemandDuration', header: 'No Demand Duration', type: 'num' },
   { field: 'runningDuration', header: 'Running Duration', type: 'num' },
   { field: 'lowSpeedDuration', header: 'Low Speed Duration', type: 'num' },
-  { field: 'totalRuntime', header: 'Total Runtime', type: 'num' }
+  { field: 'totalRuntime', header: 'Total Runtime', type: 'num' },
 ]
 
 export const LINE_OPTIONS = LINES.map((l) => ({ label: l, value: l }))

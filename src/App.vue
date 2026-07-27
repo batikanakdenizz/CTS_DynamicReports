@@ -26,8 +26,13 @@ const title = computed(() => current.value?.title || 'LinePulse')
         <component :is="current.comp" v-if="current" />
         <div v-else class="lp-card lp-placeholder">
           <i class="pi pi-wrench"></i>
-          <p>Bu ekran şablonda yok — <b>{{ active }}</b>.</p>
-          <p class="lp-placeholder-sub">Demo kabuğunda sadece Line Daily KPI ve Custom Report bağlı.</p>
+          <p>
+            Bu ekran şablonda yok — <b>{{ active }}</b
+            >.
+          </p>
+          <p class="lp-placeholder-sub">
+            Demo kabuğunda sadece Line Daily KPI ve Custom Report bağlı.
+          </p>
         </div>
       </main>
     </div>

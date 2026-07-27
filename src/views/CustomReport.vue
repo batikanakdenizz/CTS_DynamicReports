@@ -86,7 +86,9 @@ const machineOptions = computed(() =>
   machinesForLines(selectedLines.value).map((m) => ({ label: m, value: m }))
 )
 const productOptions = computed(() => {
-  const basis = selectedMachines.value.length ? selectedMachines.value : machineOptions.value.map((o) => o.value)
+  const basis = selectedMachines.value.length
+    ? selectedMachines.value
+    : machineOptions.value.map((o) => o.value)
   return productsForMachines(basis).map((p) => ({ label: p, value: p }))
 })
 
@@ -166,7 +168,8 @@ function applyRootCause() {
 
 // --- Grafik ---
 // Measure'ın anlamsal rengi varsa onu, yoksa kategorik paletten sırayla renk ver.
-const measureColor = (mkey, i) => MEASURE_MAP[mkey]?.color ?? CHART_PALETTE[i % CHART_PALETTE.length]
+const measureColor = (mkey, i) =>
+  MEASURE_MAP[mkey]?.color ?? CHART_PALETTE[i % CHART_PALETTE.length]
 // #rrggbb -> rgba(...) (line dolgusu / donut kenarı için)
 const withAlpha = (hex, a) => {
   const n = parseInt(hex.slice(1), 16)
@@ -177,7 +180,9 @@ const withAlpha = (hex, a) => {
 const chartInstance = ref(null)
 const capturePlugin = {
   id: 'captureInstance',
-  afterInit: (c) => { chartInstance.value = c },
+  afterInit: (c) => {
+    chartInstance.value = c
+  },
 }
 
 // --- Hover-focus: ÇİZİM ANINDA globalAlpha ile soldurma ---
@@ -186,7 +191,9 @@ const capturePlugin = {
 // Fare bir seriye gelince o seri tam, diğerleri soluk çizilir; fare çıkınca
 // Chart.js normal çizer (otomatik geri döner). Zoom sırasında soldurma kapalı.
 let zoomingUntil = 0
-const markZooming = () => { zoomingUntil = Date.now() + 300 }
+const markZooming = () => {
+  zoomingUntil = Date.now() + 300
+}
 
 const focusDimPlugin = {
   id: 'focusDim',
@@ -276,8 +283,12 @@ async function shareLink() {
     const url = `${location.origin}${location.pathname}#r=${encoded}`
     await navigator.clipboard?.writeText(url)
     linkCopied.value = true
-    setTimeout(() => { linkCopied.value = false }, 1500)
-  } catch { /* pano izni yok — sessiz geç */ }
+    setTimeout(() => {
+      linkCopied.value = false
+    }, 1500)
+  } catch {
+    /* pano izni yok — sessiz geç */
+  }
 }
 
 const copied = ref(false)
@@ -289,8 +300,12 @@ function copyPng() {
     try {
       await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })])
       copied.value = true
-      setTimeout(() => { copied.value = false }, 1500)
-    } catch { /* pano izni yok — sessiz geç */ }
+      setTimeout(() => {
+        copied.value = false
+      }, 1500)
+    } catch {
+      /* pano izni yok — sessiz geç */
+    }
   })
 }
 
@@ -402,24 +417,33 @@ function buildChartOptions({ forceNonDonut = false, interactive = true } = {}) {
         titleFont: { weight: '600' },
       },
       // Tekerlek ile zoom (büyüt/küçült), sürükle ile pan. Donut'ta ve B'de kapalı.
-      zoom: (isDonut || !interactive)
-        ? {}
-        : {
-            zoom: {
-              wheel: { enabled: true, speed: 0.12 },
-              pinch: { enabled: true },
-              mode: 'y',
-              // Zoom sırasında hover-focus'u baskıla (scroll ile odak değişmesin)
-              onZoomStart: () => { markZooming() },
-              onZoom: () => { markZooming() },
+      zoom:
+        isDonut || !interactive
+          ? {}
+          : {
+              zoom: {
+                wheel: { enabled: true, speed: 0.12 },
+                pinch: { enabled: true },
+                mode: 'y',
+                // Zoom sırasında hover-focus'u baskıla (scroll ile odak değişmesin)
+                onZoomStart: () => {
+                  markZooming()
+                },
+                onZoom: () => {
+                  markZooming()
+                },
+              },
+              pan: {
+                enabled: true,
+                mode: 'xy',
+                onPanStart: () => {
+                  markZooming()
+                },
+                onPan: () => {
+                  markZooming()
+                },
+              },
             },
-            pan: {
-              enabled: true,
-              mode: 'xy',
-              onPanStart: () => { markZooming() },
-              onPan: () => { markZooming() },
-            },
-          },
     },
     scales: isDonut
       ? {}
@@ -499,9 +523,7 @@ const compareChartOptions = computed(() =>
 )
 const compareChartJsType = computed(() => (chartType.value === 'line' ? 'line' : 'bar'))
 
-const donutNote = computed(
-  () => chartType.value === 'donut' && selectedMeasures.value.length > 1
-)
+const donutNote = computed(() => chartType.value === 'donut' && selectedMeasures.value.length > 1)
 
 const fmt = (row, col) => formatValue(row[col.key], col.format)
 
@@ -648,7 +670,9 @@ function applyTemplate(tpl) {
 function persistSaved() {
   try {
     localStorage.setItem(SAVED_KEY, JSON.stringify(savedReports.value))
-  } catch { /* kota/gizli mod — sessiz geç */ }
+  } catch {
+    /* kota/gizli mod — sessiz geç */
+  }
 }
 
 function saveCurrentReport() {
@@ -656,7 +680,8 @@ function saveCurrentReport() {
   if (!name) return
   const entry = { name, def: currentDef() }
   const idx = savedReports.value.findIndex((r) => r.name === name)
-  if (idx >= 0) savedReports.value[idx] = entry // aynı isim → üzerine yaz
+  if (idx >= 0)
+    savedReports.value[idx] = entry // aynı isim → üzerine yaz
   else savedReports.value.push(entry)
   persistSaved()
   savedSelection.value = name
@@ -682,12 +707,16 @@ onMounted(() => {
   if (m) {
     try {
       applyDef(JSON.parse(atob(m[1])))
-    } catch { /* bozuk/eski link — yok say, varsayılanlarla devam et */ }
+    } catch {
+      /* bozuk/eski link — yok say, varsayılanlarla devam et */
+    }
   }
   try {
     const raw = localStorage.getItem(SAVED_KEY)
     if (raw) savedReports.value = JSON.parse(raw)
-  } catch { /* bozuk veri — yok say */ }
+  } catch {
+    /* bozuk veri — yok say */
+  }
 })
 </script>
 
@@ -736,94 +765,93 @@ onMounted(() => {
         </div>
 
         <div v-else :class="['cr-compare-row', { 'cr-compare-row--split': compareEnabled }]">
-        <div class="lp-card cr-card cr-charts-card">
-          <div class="cr-card-head">
-            <h3>{{ t('chart.title') }}{{ compareEnabled ? ' — A' : '' }}</h3>
-            <div class="cr-chart-actions">
-              <Button
-                v-if="drillStack.length"
-                :label="t('chart.drillBack')"
-                icon="pi pi-arrow-left"
-                severity="secondary"
-                size="small"
-                @click="drillBack"
-              />
-              <small v-if="donutNote" class="cr-warn">
-                {{ t('donut.note') }} — "{{ MEASURE_MAP[selectedMeasures[0]]?.label }}"
-              </small>
-              <small v-else-if="!drillStack.length && chartType !== 'donut'" class="cr-hint">
-                <i class="pi pi-arrow-down-left"></i> {{ t('chart.drillHint') }}
-              </small>
-              <Button
-                :icon="linkCopied ? 'pi pi-check' : 'pi pi-link'"
-                text
-                rounded
-                size="small"
-                @click="shareLink"
-                v-tooltip.top="linkCopied ? t('chart.copied') : t('share.copy')"
-                :aria-label="t('share.copy')"
-              />
-              <Button
-                icon="pi pi-image"
-                text
-                rounded
-                size="small"
-                @click="downloadPng"
-                v-tooltip.top="t('chart.png')"
-                :aria-label="t('chart.png')"
-              />
-              <Button
-                :icon="copied ? 'pi pi-check' : 'pi pi-copy'"
-                text
-                rounded
-                size="small"
-                @click="copyPng"
-                v-tooltip.top="copied ? t('chart.copied') : t('chart.copy')"
-                :aria-label="t('chart.copy')"
-              />
-              <Button
-                v-if="chartType !== 'donut'"
-                icon="pi pi-refresh"
-                text
-                rounded
-                size="small"
-                @click="resetZoom"
-                v-tooltip.top="t('chart.zoomReset')"
-                :aria-label="t('chart.zoomReset')"
+          <div class="lp-card cr-card cr-charts-card">
+            <div class="cr-card-head">
+              <h3>{{ t('chart.title') }}{{ compareEnabled ? ' — A' : '' }}</h3>
+              <div class="cr-chart-actions">
+                <Button
+                  v-if="drillStack.length"
+                  :label="t('chart.drillBack')"
+                  icon="pi pi-arrow-left"
+                  severity="secondary"
+                  size="small"
+                  @click="drillBack"
+                />
+                <small v-if="donutNote" class="cr-warn">
+                  {{ t('donut.note') }} — "{{ MEASURE_MAP[selectedMeasures[0]]?.label }}"
+                </small>
+                <small v-else-if="!drillStack.length && chartType !== 'donut'" class="cr-hint">
+                  <i class="pi pi-arrow-down-left"></i> {{ t('chart.drillHint') }}
+                </small>
+                <Button
+                  v-tooltip.top="linkCopied ? t('chart.copied') : t('share.copy')"
+                  :icon="linkCopied ? 'pi pi-check' : 'pi pi-link'"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="t('share.copy')"
+                  @click="shareLink"
+                />
+                <Button
+                  v-tooltip.top="t('chart.png')"
+                  icon="pi pi-image"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="t('chart.png')"
+                  @click="downloadPng"
+                />
+                <Button
+                  v-tooltip.top="copied ? t('chart.copied') : t('chart.copy')"
+                  :icon="copied ? 'pi pi-check' : 'pi pi-copy'"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="t('chart.copy')"
+                  @click="copyPng"
+                />
+                <Button
+                  v-if="chartType !== 'donut'"
+                  v-tooltip.top="t('chart.zoomReset')"
+                  icon="pi pi-refresh"
+                  text
+                  rounded
+                  size="small"
+                  :aria-label="t('chart.zoomReset')"
+                  @click="resetZoom"
+                />
+              </div>
+            </div>
+            <div class="cr-chart">
+              <Chart
+                :type="chartJsType"
+                :data="chartData"
+                :options="chartOptions"
+                :plugins="chartPlugins"
               />
             </div>
           </div>
-          <div class="cr-chart">
-            <Chart
-              :type="chartJsType"
-              :data="chartData"
-              :options="chartOptions"
-              :plugins="chartPlugins"
-            />
-          </div>
-        </div>
 
-        <!-- Karşılaştırma paneli (B): sade bir Chart — donut/drill-down/zoom yok,
+          <!-- Karşılaştırma paneli (B): sade bir Chart — donut/drill-down/zoom yok,
              amaç hızlı görsel kıyas. B'nin kendi tarih/Hat filtresi olduğu için
              A'dan bağımsız olarak da tetiklenebilir. -->
-        <div v-if="compareEnabled" class="lp-card cr-card cr-charts-card">
-          <div class="cr-card-head">
-            <h3>{{ t('chart.title') }} — B</h3>
+          <div v-if="compareEnabled" class="lp-card cr-card cr-charts-card">
+            <div class="cr-card-head">
+              <h3>{{ t('chart.title') }} — B</h3>
+            </div>
+            <div v-if="!compareReport || compareReport.rows.length === 0" class="cr-empty">
+              <p>{{ t('empty.noResult') }}</p>
+            </div>
+            <div v-else class="cr-chart">
+              <Chart
+                :type="compareChartJsType"
+                :data="compareChartData"
+                :options="compareChartOptions"
+              />
+            </div>
           </div>
-          <div v-if="!compareReport || compareReport.rows.length === 0" class="cr-empty">
-            <p>{{ t('empty.noResult') }}</p>
-          </div>
-          <div v-else class="cr-chart">
-            <Chart
-              :type="compareChartJsType"
-              :data="compareChartData"
-              :options="compareChartOptions"
-            />
-          </div>
-        </div>
         </div>
       </section>
-
     </div>
 
     <!-- Kriter paneli: sağdan açılan drawer -->
@@ -970,7 +998,14 @@ onMounted(() => {
 
         <div class="cr-divider"></div>
 
-        <Button :label="t('btn.reset')" icon="pi pi-refresh" severity="secondary" outlined size="small" @click="resetAll" />
+        <Button
+          :label="t('btn.reset')"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          size="small"
+          @click="resetAll"
+        />
 
         <div class="cr-divider"></div>
 
@@ -1007,15 +1042,15 @@ onMounted(() => {
               @change="loadSavedReport(savedSelection)"
             />
             <Button
+              v-tooltip.top="t('saved.delete')"
               icon="pi pi-trash"
               severity="danger"
               text
               rounded
               size="small"
               :disabled="!savedSelection"
-              @click="deleteSavedReport"
-              v-tooltip.top="t('saved.delete')"
               :aria-label="t('saved.delete')"
+              @click="deleteSavedReport"
             />
           </div>
           <div class="cr-saved-row">
@@ -1026,12 +1061,12 @@ onMounted(() => {
               @keyup.enter="saveCurrentReport"
             />
             <Button
+              v-tooltip.top="t('saved.save')"
               icon="pi pi-save"
               size="small"
               :disabled="!newReportName.trim()"
-              @click="saveCurrentReport"
-              v-tooltip.top="t('saved.save')"
               :aria-label="t('saved.save')"
+              @click="saveCurrentReport"
             />
           </div>
         </div>
@@ -1046,9 +1081,11 @@ onMounted(() => {
       <p class="cr-rootcause-body">
         <b>{{ MEASURE_MAP[rootCause.measureKey]?.label }}</b>
         {{ t('rootcause.mostIn') }}
-        <b>{{ DIMENSION_MAP[rootCause.dim]?.label }} = {{ rootCause.groupValue }}</b>:
+        <b>{{ DIMENSION_MAP[rootCause.dim]?.label }} = {{ rootCause.groupValue }}</b
+        >:
         {{ formatValue(rootCause.measureValue, MEASURE_MAP[rootCause.measureKey]?.format) }}
-        ({{ rootCause.delta >= 0 ? '+' : '' }}{{ formatValue(rootCause.delta, MEASURE_MAP[rootCause.measureKey]?.format) }}
+        ({{ rootCause.delta >= 0 ? '+' : ''
+        }}{{ formatValue(rootCause.delta, MEASURE_MAP[rootCause.measureKey]?.format) }}
         {{ t('rootcause.vsAvg') }})
       </p>
       <small class="cr-hint">{{ t('rootcause.hint') }}</small>

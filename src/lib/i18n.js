@@ -66,7 +66,8 @@ const messages = {
     'donut.note': 'Donut tek ölçüm gösterir',
     'empty.noMeasure': 'Rapora başlamak için en az bir Ölçüm seç.',
     'empty.openBuilder': "Rapor Oluşturucu'yu Aç",
-    'empty.noResult': 'Bu filtrelerle eşleşen kayıt yok. Tarih aralığını genişlet veya hat seçimini gevşet.',
+    'empty.noResult':
+      'Bu filtrelerle eşleşen kayıt yok. Tarih aralığını genişlet veya hat seçimini gevşet.',
     'empty.resetFilters': 'Filtreleri Sıfırla',
     'data.title': 'Veri Seti',
     'data.rows': 'satır',
@@ -130,7 +131,8 @@ const messages = {
     'donut.note': 'Donut shows a single measure',
     'empty.noMeasure': 'Select at least one Measure to start.',
     'empty.openBuilder': 'Open Report Builder',
-    'empty.noResult': 'No records match these filters. Widen the date range or relax the line selection.',
+    'empty.noResult':
+      'No records match these filters. Widen the date range or relax the line selection.',
     'empty.resetFilters': 'Reset Filters',
     'data.title': 'Data Set',
     'data.rows': 'rows',
@@ -144,7 +146,9 @@ const messages = {
 
 export function t(key, ...args) {
   let s = messages[locale.value]?.[key] ?? messages.tr[key] ?? key
-  args.forEach((a, i) => { s = s.replace(`{${i}}`, a) })
+  args.forEach((a, i) => {
+    s = s.replace(`{${i}}`, a)
+  })
   return s
 }
 
@@ -152,12 +156,16 @@ export function setLocale(l) {
   locale.value = l
   try {
     localStorage.setItem(KEY, l)
-  } catch { /* yok say */ }
+  } catch {
+    /* yok say */
+  }
 }
 
 export function initI18n() {
   try {
     const s = localStorage.getItem(KEY)
     if (s === 'tr' || s === 'en') locale.value = s
-  } catch { /* yok say */ }
+  } catch {
+    /* yok say */
+  }
 }

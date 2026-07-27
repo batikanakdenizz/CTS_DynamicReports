@@ -11,7 +11,9 @@ export function applyDark(v) {
   document.documentElement.classList.toggle('dark-mode', v)
   try {
     localStorage.setItem(KEY, v ? '1' : '0')
-  } catch { /* gizli mod / kota — sessiz geç */ }
+  } catch {
+    /* gizli mod / kota — sessiz geç */
+  }
 }
 
 export function toggleDark() {
@@ -25,6 +27,8 @@ export function initTheme() {
     const s = localStorage.getItem(KEY)
     if (s === '1') v = true
     else if (s === null) v = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-  } catch { /* yok say */ }
+  } catch {
+    /* yok say */
+  }
   applyDark(v)
 }

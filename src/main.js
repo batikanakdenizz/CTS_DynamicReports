@@ -28,7 +28,7 @@ const LinePulsePreset = definePreset(Aura, {
       700: '#1d4ed8',
       800: '#1e40af',
       900: '#1e3a8a',
-      950: '#172554'
+      950: '#172554',
     },
     colorScheme: {
       light: {
@@ -44,8 +44,8 @@ const LinePulsePreset = definePreset(Aura, {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-          950: '#020617'
-        }
+          950: '#020617',
+        },
       },
       // Koyu tema yüzeyleri kabuğun lacivert tonlarıyla hizalı (style.css .dark-mode):
       // 950 = --lp-bg, 900 = --lp-surface, 700 = --lp-border. Tanımlanmazsa Aura
@@ -63,19 +63,19 @@ const LinePulsePreset = definePreset(Aura, {
           700: '#243449',
           800: '#1a2740',
           900: '#131c2e',
-          950: '#0b1220'
-        }
-      }
-    }
-  }
+          950: '#0b1220',
+        },
+      },
+    },
+  },
 })
 
 const app = createApp(App)
 app.use(PrimeVue, {
   theme: {
     preset: LinePulsePreset,
-    options: { darkModeSelector: '.dark-mode' }
-  }
+    options: { darkModeSelector: '.dark-mode' },
+  },
 })
 app.directive('tooltip', Tooltip)
 app.mount('#app')

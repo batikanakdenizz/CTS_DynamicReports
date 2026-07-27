@@ -120,5 +120,3 @@ needed; run status can be monitored on the repo's **Actions** tab.
 2. If needed, update measure keys/labels and num/den functions in
    `reportCatalog.js`.
 3. `reportEngine.js` and the entire UI remain unchanged.
-
-

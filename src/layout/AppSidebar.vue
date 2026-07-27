@@ -1,7 +1,7 @@
 <script setup>
 // LinePulse sol menüsü (gerçek uygulamadaki sırayla).
 // active/navigasyon App.vue'de yönetilir (v-model:active).
-const props = defineProps({
+defineProps({
   active: { type: String, default: 'line-daily-kpi' },
 })
 const emit = defineEmits(['update:active'])
@@ -12,14 +12,14 @@ const menu = [
   { key: 'timeline', label: 'Time Line', icon: 'pi pi-clock' },
   { key: 'loss-tree', label: 'Loss Tree', icon: 'pi pi-sitemap' },
   { key: 'operator', label: 'Operator Dashboard', icon: 'pi pi-user' },
-  { key: 'orders', label: 'Orders', icon: 'pi pi-shopping-cart' }
+  { key: 'orders', label: 'Orders', icon: 'pi pi-shopping-cart' },
 ]
 
 const reportsAnalysis = [
   { key: 'pr-losses', label: 'Uptime & Losses' },
   { key: 'unplanned-downtime', label: 'Unplanned Downtime' },
   { key: 'planned-downtime', label: 'Planned Downtime' },
-  { key: 'mtbf-up-stops', label: 'MTBF & Up Stops' }
+  { key: 'mtbf-up-stops', label: 'MTBF & Up Stops' },
 ]
 
 const reportsGeneral = [
@@ -29,13 +29,13 @@ const reportsGeneral = [
   { key: 'weekly', label: 'Weekly' },
   { key: 'monthly', label: 'Monthly' },
   { key: 'detail', label: 'Detail' },
-  { key: 'machine-timeline', label: 'Machine Timeline' }
+  { key: 'machine-timeline', label: 'Machine Timeline' },
 ]
 
 const bottom = [
   { key: 'alarms', label: 'Alarms', icon: 'pi pi-bell' },
   { key: 'definitions', label: 'Definitions', icon: 'pi pi-cog' },
-  { key: 'auth', label: 'Auth', icon: 'pi pi-lock' }
+  { key: 'auth', label: 'Auth', icon: 'pi pi-lock' },
 ]
 </script>
 

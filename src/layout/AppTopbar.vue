@@ -4,7 +4,7 @@ import { locale, setLocale, LOCALES, t } from '../lib/i18n.js'
 import { isDark, toggleDark } from '../lib/theme.js'
 
 defineProps({
-  title: { type: String, default: 'Reports' }
+  title: { type: String, default: 'Reports' },
 })
 
 function onLang(val) {
@@ -22,9 +22,9 @@ function onLang(val) {
         optionLabel="label"
         optionValue="value"
         :allowEmpty="false"
-        @update:modelValue="onLang"
         :aria-label="t('topbar.lang')"
         class="lp-lang"
+        @update:modelValue="onLang"
       />
       <button
         class="lp-icon-btn"

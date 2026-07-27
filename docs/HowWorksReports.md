@@ -49,16 +49,19 @@ Mimari olarak kritik parça: seçimleri tutan bir report definition modeli (örn
 Bu bölüm, gerçek LinePulse arayüzü (platform.enerpulse.tech/linepulse) admin oturumuyla incelenerek doldurulmuştur. Custom Report Builder'ı gerçeğe en yakın kurmak için referans olarak kullan.
 
 ## E0. Erişim / ortam notları
+
 - URL: `https://platform.enerpulse.tech/linepulse/#/app/...` (Angular/SPA, hash-router). Backend API tabanı: `https://platform.enerpulse.tech/linepulseApi/api/...`
 - Oturum: admin olarak giriş yapılmış Chrome profili üzerinden erişiliyor (aynı profil → çerez paylaşımlı). Claude in Chrome kendi ayrı "MCP sekme grubunda" çalıştığı için kullanıcının normal sekmelerini görmez; sayfayı MCP sekmesinde ayrıca açmak gerekir.
 - Sol menü: Dashboard, Time Line, Loss Tree, Operator Dashboard, Orders, **Reports (Analysis Reports + General Reports)**, Alarms, Definitions, Auth.
 
 ## E1. General Reports → Line Daily KPI (tablo raporu)
+
 Filtreler: Start Date, End Date, Line (multiselect; örn "Link-up 38, Link-Up-37"), "Generate Report" butonu, yeşil Excel export butonu, sağ üstte "filtreleri temizle" ikonu.
 
 Tablo davranışı: her kolonda ayrı arama kutusu (metin kolonlarında "Search by text", sayısal kolonlarda "Search by value" + huni/filtre menüsü), her kolonda sıralama (↑↓), sayfalama (10/…), yatay kaydırma. Yani PrimeVue DataTable: `sortable`, `filter`, `paginator`, `scrollable` + kolon bazlı filtre.
 
 **Tam kolon (measure) listesi — 28 kolon, ekrandaki sırayla:**
+
 1. Line (dimension, metin)
 2. Date (dimension, tarih — gün granülü)
 3. Calendar Time (dk)
@@ -67,7 +70,7 @@ Tablo davranışı: her kolonda ayrı arama kutusu (metin kolonlarında "Search 
 6. Reject (adet)
 7. Theo. volume (adet — teorik max üretim)
 8. Target Volume (adet)
-9. Up Time % 
+9. Up Time %
 10. Rate Loss %
 11. Reject Loss %
 12. Planned Downtime Loss %
@@ -93,6 +96,7 @@ Tablo davranışı: her kolonda ayrı arama kutusu (metin kolonlarında "Search 
 Birimler: süreler dakika (1440 dk = 1 gün), volume/reject adet, speed adet/dk, %'ler 0–100 (bazıları 100'ü aşabilir, bkz. Availability).
 
 ## E2. ÇÖZÜLEN türetilmiş KPI formülleri (gerçek verilerle DOĞRULANDI)
+
 Bu formüller örnek satırlar üzerinde aritmetikle teyit edildi — builder'ın "derived measure" motorunda bunları kullan:
 
 - **Up Time % = Volume / Theo. volume × 100** (doğrulandı: 9.254.800 / 12.671.413 = %73.04; 4.110.640 / 19.680.613 = %20.89).
@@ -107,7 +111,9 @@ Bu formüller örnek satırlar üzerinde aritmetikle teyit edildi — builder'ı
 **Aggregation uyarısı (builder için hayati):** Bir dimension'a göre gruplarken yüzdeler ORTALANAMAZ. Önce ham measure'lar (Volume, Reject, Theo.volume, süreler) toplanır, SONRA yüzde formülü uygulanır. Yani her türetilmiş KPI'ın "numerator/denominator ham bileşenleri" tanımı motor içinde tutulmalı.
 
 ## E3. Analysis Reports → Uptime & Losses (grafiksel dashboard, route: pr-losses)
+
 Layout (yukarıdan aşağı):
+
 - **Filtre çubuğu:** Start Date → End Date, Production Center (multiselect), Line (multiselect), seçilenleri gösteren chip'ler + "Clear all", yeşil Excel + kırmızı PDF export, bildirim (zil) ikonu.
 - **8 KPI kartı (üst şerit):** Uptime, Rate Loss, Quality Losses, Unplanned Downtime, Planned Downtime, Total Losses, Availability, Periods Reported. Her kartta: büyük değer + trend sparkline + renkli % değişim (yeşil artı / kırmızı eksi). Örnek değerler: Uptime 53.99%, Rate Loss 21.61%, Quality Losses 34.08%, Unplanned DT 20.77%, Planned DT 0.40%, Total Losses 76.85%, Availability 109.68% (100'ü aşabiliyor), Periods Reported 14.
 - **Trend grafiği (orta):** Sağ üstte granülerlik SelectButton'u **All / Month / Week / Day**. Yığılmış bar (Rate Loss + Quality Losses + Unplanned Downtime + Planned Downtime) + üstüne **Uptime çizgisi** (combo bar+line). X ekseni haftalar (W14…W27).
@@ -117,7 +123,9 @@ Layout (yukarıdan aşağı):
 **Terminoloji eşlemesi:** Bu ekrandaki **"Quality Losses" = tablo raporundaki "Reject Loss"**. Aynı KPI, farklı isim. Builder'da isim/etiket sözlüğü tutmakta fayda var.
 
 ## E4. Keşfedilen route'lar ve API endpoint'leri
+
 Analysis Reports route'ları:
+
 - Uptime & Losses → `#/app/reports/pr-losses`
 - Unplanned Downtime → `#/app/reports/unplanned-downtime`
 - Planned Downtime → `#/app/reports/planned-downtime`
@@ -125,19 +133,18 @@ Analysis Reports route'ları:
 - General Reports örnek: Line Daily KPI → `#/app/reports/line-daily-kpi`
 
 API endpoint'leri (hepsi POST, `.../linepulseApi/api/`):
+
 - `Report/GetEquipmentTimeLineChartDailyData` — pr-losses dashboard verisi (trend + breakdown; sayfada 2 kez çağrılıyor).
 - `ProductionCenter/GetUserProductionCentersSelectList` — Production Center filtre listesi.
 - `Line/GetUserLineByProductionCentersSelectList` — seçili PC'ye göre Line filtre listesi (bağımlı dropdown).
 - `Dashboard/SystemStatus`, `Notification/GetUnreadCount`, `RoleMenu/GetUserRoleMenus` — arka plan/menü çağrıları.
-Not: Line Daily KPI tablosu client-side cache'li — aynı filtreyle "Generate Report" tekrar basınca yeni istek atmıyor; sadece filtre değişince fetch ediyor. (Request/response gövdeleri henüz alınmadı; gerekirse javascript_tool ile fetch edilip şema netleştirilebilir.)
+  Not: Line Daily KPI tablosu client-side cache'li — aynı filtreyle "Generate Report" tekrar basınca yeni istek atmıyor; sadece filtre değişince fetch ediyor. (Request/response gövdeleri henüz alınmadı; gerekirse javascript_tool ile fetch edilip şema netleştirilebilir.)
 
 ## E5. Custom Report Builder için çıkarımlar
+
 - **Measures kataloğu** = E1'deki 28 alan; ham vs. türetilmiş ayrımı E2'deki formüllerle net.
 - **Dimensions** (gözlemlenen): Line, Production Center, Date (day/week/month/quarter/year granülerliği). MTBF/stop raporlarında muhtemelen Machine/Equipment, Stop Reason/Stoppage Code da var (diğer analysis ekranlarında teyit edilecek).
 - **Visualization tipleri** (gözlemlenen): DataTable (kolon filtre/sort/paginate), Stacked Bar, Line, Combo (bar+line), Donut, KPI card (değer + sparkline + delta%).
 - **Granülerlik kontrolü**: All/Month/Week/Day SelectButton — builder'da Date dimension için standart bir kontrol olmalı.
 - **Filtre bağımlılığı**: Line listesi seçili Production Center'a bağlı — builder filtrelerinde bu bağımlılığı destekle.
 - Dummy data'yı bu 28 measure + (Line, ProductionCenter, Date) dimensionlarını kapsayacak, hat-gün granülünde üret; türetilmiş KPI'ları E2 formülleriyle hesapla ki toplamları %100 tutsun.
-
-
-

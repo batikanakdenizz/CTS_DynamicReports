@@ -22,7 +22,8 @@ export const ALL_PRODUCTS = [...new Set(Object.values(MACHINE_PRODUCTS).flat())]
 export function machinesForLines(lineNames) {
   if (!lineNames?.length) return ALL_MACHINES
   const set = new Set()
-  for (const t of LINE_TOPOLOGY) if (lineNames.includes(t.line)) t.machines.forEach((m) => set.add(m))
+  for (const t of LINE_TOPOLOGY)
+    if (lineNames.includes(t.line)) t.machines.forEach((m) => set.add(m))
   return [...set]
 }
 

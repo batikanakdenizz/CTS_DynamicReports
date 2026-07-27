@@ -21,7 +21,10 @@ const filters = ref(buildFilters())
 function buildFilters() {
   const f = { global: { value: null, matchMode: FilterMatchMode.CONTAINS } }
   for (const c of COLUMNS) {
-    f[c.field] = { value: null, matchMode: c.type === 'text' ? FilterMatchMode.CONTAINS : FilterMatchMode.EQUALS }
+    f[c.field] = {
+      value: null,
+      matchMode: c.type === 'text' ? FilterMatchMode.CONTAINS : FilterMatchMode.EQUALS,
+    }
   }
   return f
 }
@@ -58,7 +61,12 @@ const totalRecords = computed(() => rows.value.length)
     <div class="lp-filter-bar">
       <div class="lp-field">
         <label>Start Date</label>
-        <DatePicker v-model="startDate" dateFormat="dd.mm.yy" showIcon :style="{ width: '170px' }" />
+        <DatePicker
+          v-model="startDate"
+          dateFormat="dd.mm.yy"
+          showIcon
+          :style="{ width: '170px' }"
+        />
       </div>
       <div class="lp-field">
         <label>End Date</label>
@@ -79,12 +87,17 @@ const totalRecords = computed(() => rows.value.length)
       <div class="lp-filter-actions">
         <Button label="Generate Report" icon="pi pi-play" @click="generate" />
         <Button
+          v-tooltip.top="'Export Excel'"
           icon="pi pi-file-excel"
           severity="success"
-          v-tooltip.top="'Export Excel'"
           aria-label="Export"
         />
-        <Button icon="pi pi-filter-slash" severity="secondary" outlined aria-label="Clear filters" />
+        <Button
+          icon="pi pi-filter-slash"
+          severity="secondary"
+          outlined
+          aria-label="Clear filters"
+        />
       </div>
     </div>
 
@@ -93,13 +106,17 @@ const totalRecords = computed(() => rows.value.length)
       <div class="lp-table-toolbar">
         <h3>{{ totalRecords }} records</h3>
         <span class="p-input-icon-left">
-          <InputText v-model="filters.global.value" placeholder="Search all..." :style="{ width: '220px' }" />
+          <InputText
+            v-model="filters.global.value"
+            placeholder="Search all..."
+            :style="{ width: '220px' }"
+          />
         </span>
       </div>
 
       <DataTable
-        :value="rows"
         v-model:filters="filters"
+        :value="rows"
         :globalFilterFields="columns.map((c) => c.field)"
         paginator
         :rows="15"
@@ -121,7 +138,9 @@ const totalRecords = computed(() => rows.value.length)
           :style="{ minWidth: col.type === 'text' ? '130px' : '120px', whiteSpace: 'nowrap' }"
         >
           <template #body="{ data }">
-            <span :style="{ fontVariantNumeric: 'tabular-nums' }">{{ fmt(data[col.field], col.type) }}</span>
+            <span :style="{ fontVariantNumeric: 'tabular-nums' }">{{
+              fmt(data[col.field], col.type)
+            }}</span>
           </template>
         </Column>
       </DataTable>

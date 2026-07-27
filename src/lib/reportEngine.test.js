@@ -59,7 +59,13 @@ describe('runReport — 5 kova %100 invariant', () => {
   // PlannedDT%+UnplannedDT% HER ZAMAN tam 100 olmalı (RateLoss kalan/residual
   // olarak hesaplanır). Farklı satır kombinasyonlarında (tek satır, çoklu
   // satır, sıfır üretim) bu invariant'ın bozulmadığını doğrular.
-  const BUCKETS = ['upTime', 'rejectLoss', 'plannedDowntimeLoss', 'unplannedDowntimeLoss', 'rateLoss']
+  const BUCKETS = [
+    'upTime',
+    'rejectLoss',
+    'plannedDowntimeLoss',
+    'unplannedDowntimeLoss',
+    'rateLoss',
+  ]
 
   function sumBuckets(rows) {
     const def = { measures: BUCKETS, dimensions: [], filters: {} }
@@ -69,24 +75,59 @@ describe('runReport — 5 kova %100 invariant', () => {
   }
 
   it('tek satırda tam 100 verir', () => {
-    const rows = [makeRow({
-      volume: 700, reject: 50, theoVolume: 1000,
-      plannedStopDuration: 5, unplannedStopDuration: 10, designTargetSpeed: 10,
-    })]
+    const rows = [
+      makeRow({
+        volume: 700,
+        reject: 50,
+        theoVolume: 1000,
+        plannedStopDuration: 5,
+        unplannedStopDuration: 10,
+        designTargetSpeed: 10,
+      }),
+    ]
     expect(sumBuckets(rows)).toBeCloseTo(100, 9)
   })
 
   it('birden çok, birbirinden farklı satırda toplandığında da tam 100 verir', () => {
     const rows = [
-      makeRow({ volume: 700, reject: 50, theoVolume: 1000, plannedStopDuration: 5, unplannedStopDuration: 10, designTargetSpeed: 10 }),
-      makeRow({ volume: 300, reject: 120, theoVolume: 800, plannedStopDuration: 8, unplannedStopDuration: 20, designTargetSpeed: 15 }),
-      makeRow({ volume: 900, reject: 10, theoVolume: 950, plannedStopDuration: 0, unplannedStopDuration: 3, designTargetSpeed: 8 }),
+      makeRow({
+        volume: 700,
+        reject: 50,
+        theoVolume: 1000,
+        plannedStopDuration: 5,
+        unplannedStopDuration: 10,
+        designTargetSpeed: 10,
+      }),
+      makeRow({
+        volume: 300,
+        reject: 120,
+        theoVolume: 800,
+        plannedStopDuration: 8,
+        unplannedStopDuration: 20,
+        designTargetSpeed: 15,
+      }),
+      makeRow({
+        volume: 900,
+        reject: 10,
+        theoVolume: 950,
+        plannedStopDuration: 0,
+        unplannedStopDuration: 3,
+        designTargetSpeed: 8,
+      }),
     ]
     expect(sumBuckets(rows)).toBeCloseTo(100, 9)
   })
 
   it('planlı/plansız duruş sıfırsa ve tüm hacim üretilmişse UpTime %100, diğerleri 0 olur', () => {
-    const rows = [makeRow({ volume: 1000, reject: 0, theoVolume: 1000, plannedStopDuration: 0, unplannedStopDuration: 0 })]
+    const rows = [
+      makeRow({
+        volume: 1000,
+        reject: 0,
+        theoVolume: 1000,
+        plannedStopDuration: 0,
+        unplannedStopDuration: 0,
+      }),
+    ]
     const def = { measures: BUCKETS, dimensions: [], filters: {} }
     const { rows: out } = runReport(def, rows)
     expect(out[0].upTime).toBeCloseTo(100, 9)
@@ -111,7 +152,7 @@ describe('runReport — türetilmiş (derived) ölçüler ortalanmaz, num/den ay
     ]
     const def = { measures: ['upTime'], dimensions: [], filters: {} }
     const { rows: out } = runReport(def, rows)
-    expect(out[0].upTime).toBeCloseTo((10 + 900) / (100 + 1000) * 100, 9)
+    expect(out[0].upTime).toBeCloseTo(((10 + 900) / (100 + 1000)) * 100, 9)
     expect(out[0].upTime).not.toBeCloseTo(50, 0) // basit ortalama olsaydı bu çıkardı
   })
 
@@ -122,7 +163,7 @@ describe('runReport — türetilmiş (derived) ölçüler ortalanmaz, num/den ay
     ]
     const def = { measures: ['upTime'], dimensions: [], filters: {} }
     const { rows: out } = runReport(def, rows)
-    expect(out[0].upTime).toBeCloseTo((9 * 10 + 900) / (9 * 100 + 1000) * 100, 6)
+    expect(out[0].upTime).toBeCloseTo(((9 * 10 + 900) / (9 * 100 + 1000)) * 100, 6)
     expect(out[0].upTime).not.toBeCloseTo(18, 0)
   })
 })
@@ -258,7 +299,12 @@ describe('runReport — tarih kırılımı (granularity) ve sıralama', () => {
       makeRow({ date: '20.01.2026', volume: 20 }),
       makeRow({ date: '01.02.2026', volume: 100 }),
     ]
-    const def = { measures: ['volume'], dimensions: ['date'], dateGranularity: 'month', filters: {} }
+    const def = {
+      measures: ['volume'],
+      dimensions: ['date'],
+      dateGranularity: 'month',
+      filters: {},
+    }
     const { rows: out } = runReport(def, rows)
     expect(out).toHaveLength(2)
     const jan = out.find((r) => r.date === '2026-01')
