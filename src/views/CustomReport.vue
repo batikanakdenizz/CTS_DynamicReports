@@ -10,6 +10,7 @@ import Button from 'primevue/button'
 import Drawer from 'primevue/drawer'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import ToggleSwitch from 'primevue/toggleswitch'
 
 import {
   generateCascadeRows,
@@ -310,11 +311,12 @@ const isMixedAxis = computed(() => {
   return fmts.some((f) => f === 'pct') && fmts.some((f) => f && f !== 'pct')
 })
 
-const chartData = computed(() => {
-  const { rows } = report.value
+// A/B ikisi de aynı şekilde grafik verisi kurar — tek fark B'de donut asla
+// olmaz (bkz. buildChartData ikinci parametresi ve karşılaştırma modu notu).
+function buildChartData(rows, { forceNonDonut = false } = {}) {
   const labels = rows.map(groupLabel)
 
-  if (chartType.value === 'donut') {
+  if (chartType.value === 'donut' && !forceNonDonut) {
     const mkey = selectedMeasures.value[0]
     if (!mkey) return { labels: [], datasets: [] }
     return {
@@ -357,11 +359,16 @@ const chartData = computed(() => {
       }
     }),
   }
-})
+}
 
-const chartOptions = computed(() => {
+const chartData = computed(() => buildChartData(report.value.rows))
+
+// A/B ikisi de aynı eksen/legend/tooltip mantığını paylaşır — B'de sadece
+// tıklama (drill-down) ve zoom/pan kapalı (bkz. karşılaştırma modu notu:
+// "sade bir grafik, amaç hızlı görsel kıyas").
+function buildChartOptions({ forceNonDonut = false, interactive = true } = {}) {
   const stacked = chartType.value === 'stacked'
-  const isDonut = chartType.value === 'donut'
+  const isDonut = chartType.value === 'donut' && !forceNonDonut
   // Tema-duyarlı eksen/metin renkleri (dark mode'da okunur kalsın)
   const dark = isDark.value
   const text = dark ? '#cbd5e1' : '#475569'
@@ -371,7 +378,7 @@ const chartOptions = computed(() => {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'nearest', intersect: true },
-    onClick: onChartClick,
+    onClick: interactive ? onChartClick : undefined,
     plugins: {
       legend: {
         position: isDonut ? 'right' : 'top',
@@ -394,8 +401,8 @@ const chartOptions = computed(() => {
         usePointStyle: true,
         titleFont: { weight: '600' },
       },
-      // Tekerlek ile zoom (büyüt/küçült), sürükle ile pan. Donut'ta kapalı.
-      zoom: isDonut
+      // Tekerlek ile zoom (büyüt/küçült), sürükle ile pan. Donut'ta ve B'de kapalı.
+      zoom: (isDonut || !interactive)
         ? {}
         : {
             zoom: {
@@ -445,7 +452,52 @@ const chartOptions = computed(() => {
           },
         },
   }
+}
+
+const chartOptions = computed(() => buildChartOptions())
+
+// ==================== KARŞILAŞTIRMA MODU ====================
+// İkinci bağımsız bir tarih/Hat filtresi; measures/dimensions/chartType/
+// Machine/Product birincil ile PAYLAŞILIR — motora ayrı bir hesaplama
+// eklenmiyor, runReport aynı tanımla ikinci kez çalıştırılıyor.
+const compareEnabled = ref(false)
+const compareStartDate = ref(null)
+const compareEndDate = ref(null)
+const compareLines = ref([])
+
+watch(compareEnabled, (on) => {
+  if (!on || compareStartDate.value) return
+  // Varsayılan: AYNI tarih aralığı, farklı Hat — dummy veri her zaman son 30
+  // günü kapsadığı için "önceki dönem" varsayılanı boş gelirdi (veri penceresi
+  // dışında kalırdı); kullanıcı isterse B tarihini kendi daraltır/kaydırır.
+  compareStartDate.value = startDate.value
+  compareEndDate.value = endDate.value
+  const other = LINE_OPTIONS.find((o) => !selectedLines.value.includes(o.value))
+  compareLines.value = other ? [other.value] : [...selectedLines.value]
 })
+
+const compareDefinition = computed(() => ({
+  measures: selectedMeasures.value,
+  dimensions: selectedDimensions.value,
+  dateGranularity: dateGranularity.value,
+  filters: {
+    dateFrom: compareStartDate.value,
+    dateTo: compareEndDate.value,
+    lines: compareLines.value,
+    machines: selectedMachines.value,
+    products: selectedProducts.value,
+  },
+}))
+const compareReport = computed(() =>
+  compareEnabled.value ? runReport(compareDefinition.value, allRows) : null
+)
+const compareChartData = computed(() =>
+  buildChartData(compareReport.value?.rows ?? [], { forceNonDonut: true })
+)
+const compareChartOptions = computed(() =>
+  buildChartOptions({ forceNonDonut: true, interactive: false })
+)
+const compareChartJsType = computed(() => (chartType.value === 'line' ? 'line' : 'bar'))
 
 const donutNote = computed(
   () => chartType.value === 'donut' && selectedMeasures.value.length > 1
@@ -533,6 +585,9 @@ function resetAll() {
   startDate.value = d.startDate
   endDate.value = d.endDate
   drillStack.value = []
+  compareEnabled.value = false
+  compareStartDate.value = null
+  compareEndDate.value = null
 }
 
 // --- Kaydedilmiş raporlar (localStorage) ---
@@ -679,9 +734,10 @@ onMounted(() => {
           />
         </div>
 
-        <div v-else class="lp-card cr-card cr-charts-card">
+        <div v-else :class="['cr-compare-row', { 'cr-compare-row--split': compareEnabled }]">
+        <div class="lp-card cr-card cr-charts-card">
           <div class="cr-card-head">
-            <h3>{{ t('chart.title') }}</h3>
+            <h3>{{ t('chart.title') }}{{ compareEnabled ? ' — A' : '' }}</h3>
             <div class="cr-chart-actions">
               <Button
                 v-if="drillStack.length"
@@ -744,6 +800,26 @@ onMounted(() => {
               :plugins="chartPlugins"
             />
           </div>
+        </div>
+
+        <!-- Karşılaştırma paneli (B): sade bir Chart — donut/drill-down/zoom yok,
+             amaç hızlı görsel kıyas. B'nin kendi tarih/Hat filtresi olduğu için
+             A'dan bağımsız olarak da tetiklenebilir. -->
+        <div v-if="compareEnabled" class="lp-card cr-card cr-charts-card">
+          <div class="cr-card-head">
+            <h3>{{ t('chart.title') }} — B</h3>
+          </div>
+          <div v-if="!compareReport || compareReport.rows.length === 0" class="cr-empty">
+            <p>{{ t('empty.noResult') }}</p>
+          </div>
+          <div v-else class="cr-chart">
+            <Chart
+              :type="compareChartJsType"
+              :data="compareChartData"
+              :options="compareChartOptions"
+            />
+          </div>
+        </div>
         </div>
       </section>
 
@@ -859,6 +935,39 @@ onMounted(() => {
             class="cr-w"
           />
         </div>
+
+        <div class="cr-divider"></div>
+
+        <!-- Karşılaştırma modu: measures/dimensions/chartType/Machine/Product
+             paylaşılır, sadece tarih + Hat B için bağımsız seçilir. -->
+        <div class="cr-field cr-compare-toggle">
+          <label>{{ t('compare.title') }}</label>
+          <ToggleSwitch v-model="compareEnabled" />
+        </div>
+        <template v-if="compareEnabled">
+          <div class="cr-field">
+            <label>{{ t('compare.dateRange') }}</label>
+            <div class="cr-compare-daterange">
+              <DatePicker v-model="compareStartDate" dateFormat="dd.mm.yy" showIcon class="cr-w" />
+              <DatePicker v-model="compareEndDate" dateFormat="dd.mm.yy" showIcon class="cr-w" />
+            </div>
+          </div>
+          <div class="cr-field">
+            <label>{{ t('compare.line') }}</label>
+            <MultiSelect
+              v-model="compareLines"
+              :options="LINE_OPTIONS"
+              optionLabel="label"
+              optionValue="value"
+              :maxSelectedLabels="2"
+              :selectedItemsLabel="t('sel.lines')"
+              :placeholder="t('ph.line')"
+              class="cr-w"
+            />
+          </div>
+        </template>
+
+        <div class="cr-divider"></div>
 
         <Button :label="t('btn.reset')" icon="pi pi-refresh" severity="secondary" outlined size="small" @click="resetAll" />
 
@@ -1024,6 +1133,28 @@ onMounted(() => {
 .cr-dataset {
   margin-top: 1.25rem;
   padding: 1rem 1.1rem;
+}
+.cr-compare-toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.cr-compare-daterange {
+  display: flex;
+  gap: 0.5rem;
+}
+.cr-compare-daterange > * {
+  flex: 1;
+  min-width: 0;
+}
+.cr-compare-row {
+  display: contents; /* kapalıyken kartlar normal dikey akışta kalsın */
+}
+.cr-compare-row--split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
 }
 .cr-rootcause {
   margin-top: 1.25rem;
