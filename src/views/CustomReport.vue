@@ -588,6 +588,7 @@ function resetAll() {
   compareEnabled.value = false
   compareStartDate.value = null
   compareEndDate.value = null
+  compareLines.value = []
 }
 
 // --- Kaydedilmiş raporlar (localStorage) ---
