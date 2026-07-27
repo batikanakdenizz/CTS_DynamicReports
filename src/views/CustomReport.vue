@@ -220,6 +220,19 @@ function downloadPng() {
   a.click()
 }
 
+// Paylaşılabilir link: currentDef() zaten flat+JSON-safe (save/load'da kullanılan
+// aynı şekil) — base64'e sarıp URL hash'ine ekliyoruz, ek bir backend/route gerekmiyor.
+const linkCopied = ref(false)
+async function shareLink() {
+  try {
+    const encoded = btoa(JSON.stringify(currentDef()))
+    const url = `${location.origin}${location.pathname}#r=${encoded}`
+    await navigator.clipboard?.writeText(url)
+    linkCopied.value = true
+    setTimeout(() => { linkCopied.value = false }, 1500)
+  } catch { /* pano izni yok — sessiz geç */ }
+}
+
 const copied = ref(false)
 function copyPng() {
   const c = chartCanvasComposite()
@@ -561,6 +574,14 @@ function deleteSavedReport() {
 }
 
 onMounted(() => {
+  // Paylaşılabilir link: #r=<base64 currentDef()> hash'i varsa raporu ondan kur.
+  // Router yok, hash sayfa yeniden yüklemeden okunabiliyor.
+  const m = location.hash.match(/^#r=([A-Za-z0-9+/=]+)/)
+  if (m) {
+    try {
+      applyDef(JSON.parse(atob(m[1])))
+    } catch { /* bozuk/eski link — yok say, varsayılanlarla devam et */ }
+  }
   try {
     const raw = localStorage.getItem(SAVED_KEY)
     if (raw) savedReports.value = JSON.parse(raw)
@@ -630,6 +651,15 @@ onMounted(() => {
               <small v-else-if="!drillStack.length && chartType !== 'donut'" class="cr-hint">
                 <i class="pi pi-arrow-down-left"></i> {{ t('chart.drillHint') }}
               </small>
+              <Button
+                :icon="linkCopied ? 'pi pi-check' : 'pi pi-link'"
+                text
+                rounded
+                size="small"
+                @click="shareLink"
+                v-tooltip.top="linkCopied ? t('chart.copied') : t('share.copy')"
+                :aria-label="t('share.copy')"
+              />
               <Button
                 icon="pi pi-image"
                 text

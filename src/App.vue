@@ -6,7 +6,7 @@ import LineDailyKpi from './views/LineDailyKpi.vue'
 import CustomReport from './views/CustomReport.vue'
 
 // Basit view yönlendirme (router yerine): sidebar 'active' anahtarını view'e eşler.
-const active = ref('line-daily-kpi')
+const active = ref(location.hash.startsWith('#r=') ? 'custom-report' : 'line-daily-kpi')
 
 const VIEWS = {
   'line-daily-kpi': { comp: LineDailyKpi, title: 'Reports · Line Daily KPI' },
