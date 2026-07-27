@@ -25,6 +25,7 @@ import {
   CHART_TYPES,
   CHART_PALETTE,
 } from '../data/reportCatalog.js'
+import { REPORT_TEMPLATES } from '../data/reportTemplates.js'
 import { runReport, formatValue } from '../lib/reportEngine.js'
 import { isDark } from '../lib/theme.js'
 import { t } from '../lib/i18n.js'
@@ -511,6 +512,18 @@ function applyDef(def) {
   endDate.value = fromISO(def.endDate)
 }
 
+// Şablonlar tarih SAKLAMAZ (bkz. reportTemplates.js) — her uygulamada
+// "bugünden geri 30 gün" taze hesaplanır, aksi halde dummy veri penceresinin
+// (her zaman bugüne göre son 30 gün) dışına düşüp rapor boş görünürdü.
+function applyTemplate(tpl) {
+  applyDef({
+    ...tpl.def,
+    startDate: toISO(daysAgo(29)),
+    endDate: toISO(new Date(today)),
+  })
+  drillStack.value = []
+}
+
 function persistSaved() {
   try {
     localStorage.setItem(SAVED_KEY, JSON.stringify(savedReports.value))
@@ -769,6 +782,24 @@ onMounted(() => {
 
         <div class="cr-divider"></div>
 
+        <!-- Rapor şablonları -->
+        <div class="cr-field">
+          <label>{{ t('tpl.title') }}</label>
+          <div class="cr-tpl-row">
+            <Button
+              v-for="tpl in REPORT_TEMPLATES"
+              :key="tpl.key"
+              :label="t(tpl.nameKey)"
+              severity="secondary"
+              outlined
+              size="small"
+              @click="applyTemplate(tpl)"
+            />
+          </div>
+        </div>
+
+        <div class="cr-divider"></div>
+
         <!-- Kaydedilmiş raporlar -->
         <div class="cr-field">
           <label>{{ t('saved.title') }}</label>
@@ -928,6 +959,11 @@ onMounted(() => {
 }
 .cr-w {
   width: 100%;
+}
+.cr-tpl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 .cr-saved-row {
   display: flex;
