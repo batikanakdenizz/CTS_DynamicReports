@@ -4,6 +4,9 @@ import AppSidebar from './layout/AppSidebar.vue'
 import AppTopbar from './layout/AppTopbar.vue'
 import LineDailyKpi from './views/LineDailyKpi.vue'
 import CustomReport from './views/CustomReport.vue'
+import FormsInspection from './views/FormsInspection.vue'
+import FormTypeGallery from './views/FormTypeGallery.vue'
+import FormResponses from './views/FormResponses.vue'
 
 // Basit view yönlendirme (router yerine): sidebar 'active' anahtarını view'e eşler.
 const active = ref(location.hash.startsWith('#r=') ? 'custom-report' : 'line-daily-kpi')
@@ -11,6 +14,9 @@ const active = ref(location.hash.startsWith('#r=') ? 'custom-report' : 'line-dai
 const VIEWS = {
   'line-daily-kpi': { comp: LineDailyKpi, title: 'Reports · Line Daily KPI' },
   'custom-report': { comp: CustomReport, title: 'Reports · Custom Report' },
+  'forms-inspection': { comp: FormsInspection, title: 'Forms · Inspection Forms' },
+  'forms-gallery': { comp: FormTypeGallery, title: 'Forms · Question Type Gallery' },
+  'forms-responses': { comp: FormResponses, title: 'Forms · Saved Responses' },
 }
 
 const current = computed(() => VIEWS[active.value] || null)
