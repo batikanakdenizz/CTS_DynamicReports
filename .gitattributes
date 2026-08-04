@@ -1,0 +1,9 @@
+# GitHub Linguist — repo sayfasındaki dil çubuğu.
+#
+# Test dosyaları uygulama kodu değil; sayıma girdiklerinde bu Vue projesi
+# repo başlığında "JavaScript" ağırlıklı görünüyor. Vue tarafı zaten sadece
+# .vue dosyalarından sayılıyor, oysa .js modüllerin bir kısmı (i18n.js,
+# theme.js, main.js) doğrudan Vue API'si kullanıyor.
+#
+# Kaynak kod gizlenmiyor — sadece testler sayım dışında.
+*.test.js linguist-detectable=false
