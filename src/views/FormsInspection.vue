@@ -7,16 +7,9 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import FormRenderer from '../components/form/FormRenderer.vue'
 import { FORM_TEMPLATES } from '../data/formTemplates.js'
-import { QUESTION_TYPES } from '../data/questionTypes.js'
-import {
-  blankAnswers,
-  validateForm,
-  scoreForm,
-  countFlags,
-  flatQuestions,
-  formatAnswer,
-} from '../lib/formEngine.js'
-import { saveResponse, newResponseId } from '../lib/formStorage.js'
+import { blankAnswers, validateForm, scoreForm, countFlags } from '../lib/formEngine.js'
+import { exportFormPdf, pdfFileName } from '../lib/formPdf.js'
+import { createResponse } from '../lib/formRepository.js'
 import { t } from '../lib/i18n.js'
 
 const selectedKey = ref(FORM_TEMPLATES[0].key)
@@ -58,14 +51,11 @@ function resetForm() {
   banner.text = ''
 }
 
-// Kaydedilen kaydın listede kim tarafından doldurulduğunu göstermek için ilk
-// 'person' tipli cevabı kullanıyoruz (denetçi / operatör / bildiren).
-function filledBy() {
-  const q = flatQuestions(form.value).find((x) => x.type === 'person')
-  return (q && answers.value[q.key]) || '-'
-}
+const saving = ref(false)
 
-function save() {
+// Kaydetme depoya (formRepository) gider; hangi adaptörün çalıştığını bu ekran
+// bilmez. Bugün localStorage, yarın LinePulse API'si — burada kod değişmez.
+async function save() {
   const result = validateForm(form.value, answers.value)
   errors.value = result.errors
   if (!result.valid) {
@@ -73,27 +63,28 @@ function save() {
     banner.text = t('frm.saveInvalid', result.missing)
     return
   }
-  const ok = saveResponse({
-    id: newResponseId(),
-    formKey: form.value.key,
-    titleKey: form.value.titleKey,
-    savedAt: new Date().toISOString(),
-    filledBy: filledBy(),
-    answers: answers.value,
-    score: form.value.scored ? score.value.pct : null,
-    flagCount: countFlags(form.value, answers.value),
-  })
-  banner.severity = ok ? 'success' : 'error'
-  banner.text = ok ? t('frm.saved') : t('frm.saveQuotaFull')
-  if (ok) clearAnswers()
+
+  saving.value = true
+  try {
+    await createResponse({
+      form: form.value,
+      answers: answers.value,
+      score: form.value.scored ? score.value.pct : null,
+      flagCount: countFlags(form.value, answers.value),
+    })
+    banner.severity = 'success'
+    banner.text = t('frm.saved')
+    clearAnswers()
+  } catch (err) {
+    banner.severity = 'error'
+    banner.text = err?.message === 'QUOTA_EXCEEDED' ? t('frm.saveQuotaFull') : t('frm.saveError')
+  } finally {
+    saving.value = false
+  }
 }
 
 // --- Dışa aktarım ---------------------------------------------------------
-function fileName() {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  return `${form.value.key}-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
+const fileName = () => pdfFileName(form.value.key)
 
 function exportJson() {
   const blob = new Blob(
@@ -110,68 +101,12 @@ function exportJson() {
   URL.revokeObjectURL(url)
 }
 
-// jsPDF'in gömülü fontları cp1252 kodlar: ç/ö/ü çalışır ama ş/ğ/ı/İ bozulur.
-// Tam çözüm TTF gömmek olurdu (~300KB base64); rapor tarafı da gömmediği için
-// aynı yolu izleyip sadece sorunlu harfleri sadeleştiriyoruz.
-const PDF_MAP = { ş: 's', Ş: 'S', ğ: 'g', Ğ: 'G', ı: 'i', İ: 'I' }
-const pdfSafe = (s) => String(s ?? '').replace(/[şŞğĞıİ]/g, (c) => PDF_MAP[c])
-
-async function exportPdf() {
-  const { jsPDF } = await import('jspdf')
-  const { default: autoTable } = await import('jspdf-autotable')
-  const doc = new jsPDF()
-  const margin = 14
-
-  doc.setFontSize(14)
-  doc.text(pdfSafe(t(form.value.titleKey)), margin, 16)
-  doc.setFontSize(9)
-  doc.setTextColor(120)
-  doc.text(pdfSafe(new Date().toLocaleString()), margin, 22)
-  if (form.value.scored) {
-    doc.text(pdfSafe(`${t('frm.score')}: ${score.value.pct.toFixed(0)}%`), margin, 27)
-  }
-  doc.setTextColor(0)
-
-  const body = []
-  for (const section of form.value.sections) {
-    for (const q of section.questions) {
-      if (QUESTION_TYPES[q.type]?.answerless) continue
-      if (q.type === 'photo' || q.type === 'signature') continue
-      body.push([
-        pdfSafe(t(section.titleKey)),
-        pdfSafe(t(q.labelKey)),
-        pdfSafe(formatAnswer(q, answers.value[q.key], t)),
-      ])
-    }
-  }
-
-  autoTable(doc, {
-    startY: form.value.scored ? 32 : 27,
-    head: [
-      [pdfSafe(t('frm.pdf.section')), pdfSafe(t('frm.pdf.question')), pdfSafe(t('frm.pdf.answer'))],
-    ],
-    body,
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: [59, 130, 246] },
-    columnStyles: { 0: { cellWidth: 38 }, 1: { cellWidth: 78 } },
+// PDF üretimi Kayıtlı Yanıtlar ekranıyla ortak — bkz. lib/formPdf.js
+const exportPdf = () =>
+  exportFormPdf(form.value, answers.value, {
+    score: form.value.scored ? score.value.pct : null,
+    fileName: fileName(),
   })
-
-  // İmzalar tablonun altına görsel olarak eklenir.
-  let y = doc.lastAutoTable.finalY + 8
-  for (const q of flatQuestions(form.value)) {
-    if (q.type !== 'signature' || !answers.value[q.key]) continue
-    if (y > 250) {
-      doc.addPage()
-      y = 20
-    }
-    doc.setFontSize(9)
-    doc.text(pdfSafe(t(q.labelKey)), margin, y)
-    doc.addImage(answers.value[q.key], 'PNG', margin, y + 2, 60, 24)
-    y += 34
-  }
-
-  doc.save(`${fileName()}.pdf`)
-}
 </script>
 
 <template>
@@ -207,7 +142,7 @@ async function exportPdf() {
       <FormRenderer :form="form" :answers="answers" :errors="errors" @change="onChange" />
 
       <div class="frm-actions">
-        <Button icon="pi pi-save" :label="t('frm.save')" @click="save" />
+        <Button icon="pi pi-save" :label="t('frm.save')" :loading="saving" @click="save" />
         <Button
           icon="pi pi-refresh"
           severity="secondary"

@@ -1,28 +1,93 @@
 <script setup>
-// Kayıtlı form yanıtları. localStorage'daki kayıtları listeler; satır açılınca
-// aynı FormRenderer salt-okunur modda yanıtın tamamını gösterir.
+// Kayıtlı form yanıtları. Depodan (formRepository) okur — hangi adaptörün
+// çalıştığını bilmez. Satır açılınca aynı FormRenderer salt-okunur modda
+// yanıtın tamamını gösterir.
+//
+// Silme iki farklı iştir: normal kullanıcı kaydı İPTAL eder (kayıt durur,
+// denetim izi korunur), yönetici KALICI silebilir. Hangisinin görüneceğine
+// formPolicy karar verir.
 import { ref, computed, onMounted } from 'vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import Message from 'primevue/message'
+import ProgressSpinner from 'primevue/progressspinner'
+import ToggleSwitch from 'primevue/toggleswitch'
+import ConfirmPopup from 'primevue/confirmpopup'
+import InputText from 'primevue/inputtext'
+import { useConfirm } from 'primevue/useconfirm'
 import FormRenderer from '../components/form/FormRenderer.vue'
 import { FORM_MAP } from '../data/formTemplates.js'
 import { QUESTION_TYPES } from '../data/questionTypes.js'
 import { flatQuestions, formatAnswer } from '../lib/formEngine.js'
-import { loadResponses, deleteResponse } from '../lib/formStorage.js'
+import { exportFormPdf, pdfFileName } from '../lib/formPdf.js'
+import { listResponses, voidResponse, deleteResponse } from '../lib/formRepository.js'
+import { currentUser } from '../lib/currentUser.js'
+import { canVoid, canDelete } from '../lib/formPolicy.js'
 import { t } from '../lib/i18n.js'
+
+const confirm = useConfirm()
 
 const rows = ref([])
 const expanded = ref({})
-
-onMounted(() => (rows.value = loadResponses()))
+const loading = ref(false)
+const loadError = ref('')
+const showVoided = ref(false)
+const voidReason = ref('')
 
 const formOf = (r) => FORM_MAP[r.formKey]
 
-function remove(r) {
-  deleteResponse(r.id)
-  rows.value = loadResponses()
+async function reload() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    rows.value = await listResponses({ includeVoided: showVoided.value })
+  } catch {
+    loadError.value = t('frm.loadError')
+    rows.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(reload)
+
+const mayVoid = (r) => canVoid(currentUser.value, r)
+const mayDelete = (r) => canDelete(currentUser.value, r)
+
+// İptal: sebep zorunlu, onay kutusunun içinde soruluyor.
+function askVoid(event, r) {
+  voidReason.value = ''
+  confirm.require({
+    target: event.currentTarget,
+    // DİKKAT: `group` kullanılmaz — PrimeVue onu isteği group="..." tanımlı bir
+    // ConfirmPopup örneğine yönlendirmek için kullanır ve öyle bir örnek yok,
+    // istek sessizce kaybolurdu. Ayrım için kendi alanımız: mode.
+    mode: 'void',
+    message: t('resp.confirmVoid'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('frm.cancel'), severity: 'secondary', outlined: true, size: 'small' },
+    acceptProps: { label: t('resp.void'), severity: 'warn', size: 'small' },
+    accept: async () => {
+      await voidResponse(r.id, voidReason.value.trim())
+      await reload()
+    },
+  })
+}
+
+function askDelete(event, r) {
+  confirm.require({
+    target: event.currentTarget,
+    message: t('resp.confirmDelete'),
+    icon: 'pi pi-trash',
+    rejectProps: { label: t('frm.cancel'), severity: 'secondary', outlined: true, size: 'small' },
+    acceptProps: { label: t('frm.delete'), severity: 'danger', size: 'small' },
+    accept: async () => {
+      await deleteResponse(r.id)
+      await reload()
+    },
+  })
 }
 
 const fmtDate = (iso) => {
@@ -32,6 +97,18 @@ const fmtDate = (iso) => {
 }
 
 const scoreSeverity = (pct) => (pct >= 85 ? 'success' : pct >= 60 ? 'warn' : 'danger')
+
+// Kaydın PDF'i doldurma ekranındakiyle aynı fonksiyondan üretilir; tek fark
+// zaman damgasının "şimdi" değil kaydın kendi tarihi olması.
+function exportRowPdf(r) {
+  const form = formOf(r)
+  if (!form) return
+  return exportFormPdf(form, r.answers, {
+    score: r.score,
+    savedAt: r.createdAt,
+    fileName: pdfFileName(r.formKey, r.createdAt),
+  })
+}
 
 const total = computed(() => rows.value.length)
 
@@ -48,8 +125,8 @@ async function exportExcel(formKey) {
   const aoa = [
     [t('resp.savedAt'), t('resp.filledBy'), t('frm.score'), ...questions.map((q) => t(q.labelKey))],
     ...subset.map((r) => [
-      fmtDate(r.savedAt),
-      r.filledBy,
+      fmtDate(r.createdAt),
+      r.createdBy?.name ?? '-',
       r.score == null ? '-' : `${r.score.toFixed(0)}%`,
       ...questions.map((q) => formatAnswer(q, r.answers[q.key], t)),
     ]),
@@ -72,6 +149,10 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
         <div class="lp-breadcrumb">{{ t('resp.page.breadcrumb') }}</div>
       </div>
       <div class="resp-actions">
+        <div class="resp-voided-toggle">
+          <ToggleSwitch v-model="showVoided" input-id="showVoided" @update:modelValue="reload" />
+          <label for="showVoided">{{ t('resp.showVoided') }}</label>
+        </div>
         <Button
           v-for="key in presentForms"
           :key="key"
@@ -85,7 +166,30 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
       </div>
     </div>
 
-    <div v-if="!total" class="lp-card resp-empty">
+    <ConfirmPopup>
+      <template #message="slotProps">
+        <div class="resp-confirm">
+          <div class="resp-confirm-head">
+            <i :class="slotProps.message.icon"></i>
+            <span>{{ slotProps.message.message }}</span>
+          </div>
+          <!-- İptal sebebi denetim izinin parçası: kaydın üstüne yazılıyor. -->
+          <template v-if="slotProps.message.mode === 'void'">
+            <label class="resp-confirm-label" for="voidReason">{{ t('resp.voidReason') }}</label>
+            <InputText id="voidReason" v-model="voidReason" class="resp-confirm-input" />
+          </template>
+        </div>
+      </template>
+    </ConfirmPopup>
+
+    <Message v-if="loadError" severity="error" :closable="false">{{ loadError }}</Message>
+
+    <div v-if="loading" class="lp-card resp-empty">
+      <ProgressSpinner style="width: 2.5rem; height: 2.5rem" stroke-width="4" />
+      <p>{{ t('frm.loading') }}</p>
+    </div>
+
+    <div v-else-if="!total" class="lp-card resp-empty">
       <i class="pi pi-inbox"></i>
       <p>{{ t('resp.empty') }}</p>
       <p class="resp-empty-sub">{{ t('resp.emptyHint') }}</p>
@@ -103,16 +207,24 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
         <Column expander style="width: 3rem" />
         <Column :header="t('resp.form')">
           <template #body="{ data }">
-            <span class="resp-form">
+            <span class="resp-form" :class="{ 'resp-form--void': data.status === 'void' }">
               <i :class="formOf(data)?.icon"></i>
               {{ t(data.titleKey) }}
+              <Tag
+                v-if="data.status === 'void'"
+                v-tooltip.top="data.voidReason || ''"
+                severity="secondary"
+                :value="t('resp.voided')"
+              />
             </span>
           </template>
         </Column>
         <Column :header="t('resp.savedAt')">
-          <template #body="{ data }">{{ fmtDate(data.savedAt) }}</template>
+          <template #body="{ data }">{{ fmtDate(data.createdAt) }}</template>
         </Column>
-        <Column field="filledBy" :header="t('resp.filledBy')" />
+        <Column :header="t('resp.filledBy')">
+          <template #body="{ data }">{{ data.createdBy?.name ?? '-' }}</template>
+        </Column>
         <Column :header="t('frm.score')">
           <template #body="{ data }">
             <Tag
@@ -134,16 +246,39 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
             <span v-else class="resp-dash">-</span>
           </template>
         </Column>
-        <Column style="width: 4rem">
+        <Column style="width: 7rem">
           <template #body="{ data }">
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              rounded
-              :aria-label="t('resp.delete')"
-              @click="remove(data)"
-            />
+            <div class="resp-row-actions">
+              <Button
+                v-tooltip.top="t('btn.pdf')"
+                icon="pi pi-file-pdf"
+                severity="secondary"
+                text
+                rounded
+                :aria-label="t('btn.pdf')"
+                @click="exportRowPdf(data)"
+              />
+              <Button
+                v-if="mayVoid(data)"
+                v-tooltip.top="t('resp.void')"
+                icon="pi pi-ban"
+                severity="warn"
+                text
+                rounded
+                :aria-label="t('resp.void')"
+                @click="askVoid($event, data)"
+              />
+              <Button
+                v-if="mayDelete(data)"
+                v-tooltip.top="t('frm.delete')"
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                :aria-label="t('frm.delete')"
+                @click="askDelete($event, data)"
+              />
+            </div>
           </template>
         </Column>
 
@@ -166,8 +301,43 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
 <style scoped>
 .resp-actions {
   display: flex;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.6rem;
   flex-wrap: wrap;
+}
+.resp-voided-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.resp-voided-toggle label {
+  font-size: 0.95rem;
+  color: var(--lp-text-muted);
+  cursor: pointer;
+}
+.resp-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 280px;
+}
+.resp-confirm-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.resp-confirm-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.resp-confirm-input {
+  width: 100%;
+}
+/* İptal edilmiş kayıt listede kalır ama geri planda durur. */
+.resp-form--void {
+  opacity: 0.6;
 }
 .resp-empty {
   padding: 3rem 1.5rem;
@@ -197,6 +367,10 @@ const presentForms = computed(() => [...new Set(rows.value.map((r) => r.formKey)
 }
 .resp-dash {
   color: var(--lp-text-muted);
+}
+.resp-row-actions {
+  display: flex;
+  gap: 0.1rem;
 }
 .resp-detail {
   padding: 1rem 1.25rem;

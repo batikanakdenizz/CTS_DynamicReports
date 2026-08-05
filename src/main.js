@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import Tooltip from 'primevue/tooltip'
+import ConfirmationService from 'primevue/confirmationservice'
 import Aura from '@primevue/themes/aura'
 import { definePreset } from '@primevue/themes'
 import 'primeicons/primeicons.css'
@@ -77,5 +78,8 @@ app.use(PrimeVue, {
     options: { darkModeSelector: '.dark-mode' },
   },
 })
+// Kayıt iptali/silmesi onay ister (ConfirmPopup) — tarayıcının yerli
+// confirm()'ü sayfayı kilitlediği için kullanılmıyor.
+app.use(ConfirmationService)
 app.directive('tooltip', Tooltip)
 app.mount('#app')
