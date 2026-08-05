@@ -29,6 +29,7 @@ import {
 } from '../data/reportCatalog.js'
 import { REPORT_TEMPLATES } from '../data/reportTemplates.js'
 import { runReport, formatValue } from '../lib/reportEngine.js'
+import { addPdfLogo } from '../lib/pdfBrand.js'
 import { isDark } from '../lib/theme.js'
 import { t } from '../lib/i18n.js'
 import zoomPlugin from 'chartjs-plugin-zoom'
@@ -556,6 +557,9 @@ async function exportPdf() {
   const doc = new jsPDF({ orientation: 'landscape' })
   const pageW = doc.internal.pageSize.getWidth()
   const margin = 14
+
+  // Logo sağ üstte (y 10..24); grafik y=26'dan başladığı için çakışmaz.
+  await addPdfLogo(doc, { margin })
 
   doc.setFontSize(14)
   doc.text('Custom Report', margin, 14)
