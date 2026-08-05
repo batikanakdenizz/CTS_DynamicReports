@@ -1,9 +1,13 @@
-// Doldurulmuş formların kalıcılığı — CustomReport'un 'cr-saved-reports'
-// deseninin form tarafındaki karşılığı. Backend yok: her şey localStorage'da.
+// Doldurulmuş formların localStorage katmanı — CustomReport'un
+// 'cr-saved-reports' deseninin form tarafındaki karşılığı.
+//
+// Bu dosya artık doğrudan ekranlardan çağrılmıyor: repositories/localAdapter
+// üzerinden formRepository'ye bağlanıyor. API geldiğinde ekranlar değişmeden
+// adaptör değişecek (bkz. lib/formRepository.js).
 //
 // Not: Date nesneleri JSON'a ISO string olarak yazılır. Geri okunduğunda
-// yeniden Date'e çevirmiyoruz çünkü kayıtlar sadece salt-okunur gösteriliyor
-// ve formEngine.formatAnswer string tarihleri de biliyor.
+// yeniden Date'e çevrilmiyor çünkü kayıtlar salt-okunur gösteriliyor ve
+// formEngine.formatAnswer string tarihleri de biliyor.
 
 const KEY = 'cr-form-responses'
 
@@ -17,25 +21,17 @@ export function loadResponses() {
   }
 }
 
-function persist(list) {
+/**
+ * Listeyi olduğu gibi yazar. Kota dolduysa (fotoğraflar yüzünden olabilir)
+ * sessizce başarısız olmak yerine false döner — çağıran kullanıcıyı uyarır.
+ */
+export function persistResponses(list) {
   try {
     localStorage.setItem(KEY, JSON.stringify(list))
     return true
   } catch {
-    // Kota dolduysa (fotoğraflar yüzünden olabilir) sessizce başarısız olmak
-    // yerine çağıranın kullanıcıyı uyarabilmesi için false dönüyoruz.
     return false
   }
-}
-
-export function saveResponse(record) {
-  const list = loadResponses()
-  list.unshift(record)
-  return persist(list)
-}
-
-export function deleteResponse(id) {
-  return persist(loadResponses().filter((r) => r.id !== id))
 }
 
 export function newResponseId() {
