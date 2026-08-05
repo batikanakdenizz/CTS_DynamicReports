@@ -30,7 +30,7 @@ const BOUND_TO = {
   person: 'AutoComplete',
   slider: 'Slider',
   rating: 'Rating',
-  knob: 'Knob',
+  knob: 'Knob + çentik',
   photo: 'input[file] + canvas',
   signature: 'canvas',
   info: 'Message',
