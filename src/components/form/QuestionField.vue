@@ -17,11 +17,11 @@ import Checkbox from 'primevue/checkbox'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Slider from 'primevue/slider'
 import Rating from 'primevue/rating'
-import Knob from 'primevue/knob'
 import AutoComplete from 'primevue/autocomplete'
 import Message from 'primevue/message'
 import PhotoField from './PhotoField.vue'
 import SignaturePad from './SignaturePad.vue'
+import ScaleKnob from './ScaleKnob.vue'
 
 import { PEOPLE } from '../../data/formTemplates.js'
 import { isFlagged, noteKeyOf, photoKeyOf, formatAnswer } from '../../lib/formEngine.js'
@@ -285,13 +285,14 @@ const complianceSeverity = (v) =>
           <span class="frm-slider-val">{{ value ?? '-' }}</span>
         </div>
 
-        <Knob
+        <ScaleKnob
           v-else-if="q.type === 'knob'"
           :model-value="value"
           :min="q.min ?? 0"
           :max="q.max ?? 100"
           :step="q.step || 1"
           :size="96"
+          :invalid="!!error"
           @update:modelValue="set"
         />
 
@@ -369,8 +370,12 @@ const complianceSeverity = (v) =>
 .frm-q--info {
   padding: 0.5rem 0;
 }
+/* DİKKAT: style.css gövdeyi 14px yapıyor, yani 1rem = 14px (16px DEĞİL).
+   Buradaki ölçüler ona göre. Soru metni sahada tablet üzerinden okunuyor,
+   14px'in altına inmemeli; uzun 5S cümleleri için line-height şart. */
 .frm-q-label {
-  font-size: 0.82rem;
+  font-size: 1rem;
+  line-height: 1.45;
   font-weight: 600;
   color: var(--lp-text);
 }
@@ -379,17 +384,19 @@ const complianceSeverity = (v) =>
   margin-left: 0.15rem;
 }
 .frm-q-hint {
-  font-size: 0.73rem;
+  font-size: 0.86rem;
+  line-height: 1.4;
   color: var(--lp-text-muted);
-  margin-top: -0.2rem;
+  margin-top: -0.1rem;
 }
 .frm-q-ro {
-  font-size: 0.88rem;
+  font-size: 1rem;
+  line-height: 1.45;
   color: var(--lp-text-muted);
   padding: 0.15rem 0;
 }
 .frm-err {
-  font-size: 0.73rem;
+  font-size: 0.86rem;
   color: var(--p-red-500);
 }
 .frm-w {
@@ -403,7 +410,7 @@ const complianceSeverity = (v) =>
 }
 .frm-inline label,
 .frm-switch-state {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
 }
 .frm-radio-list {
   display: flex;
@@ -416,7 +423,7 @@ const complianceSeverity = (v) =>
   gap: 0.4rem;
 }
 .frm-radio label {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 .frm-slider {
@@ -432,7 +439,7 @@ const complianceSeverity = (v) =>
   min-width: 2.2rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--lp-text-muted);
 }
 /* SelectButton varsayılan olarak kapsayıcıyı doldurur; invalid çerçevesi de
@@ -468,7 +475,7 @@ const complianceSeverity = (v) =>
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.76rem;
+  font-size: 0.86rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;

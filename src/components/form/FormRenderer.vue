@@ -149,7 +149,8 @@ const pct = (n) => `${n.toFixed(0)}%`
   align-items: center;
   gap: 0.6rem;
   font-weight: 600;
-  font-size: 0.9rem;
+  /* 1rem = 14px (style.css gövdeyi 14px yapıyor) */
+  font-size: 1rem;
 }
 .frm-section-score {
   font-variant-numeric: tabular-nums;
