@@ -14,7 +14,7 @@ serializable report-definition model, so a report saved in one opens in the
 other. The two repos exist so the company could choose a UI library by
 **building the same product twice** rather than comparing feature tables.
 
-**🔗 Live demo:** https://batikanakdenizz.github.io/CTS_DynamicReports/
+**🔗 Live demo:** https://batikanakdenizz.github.io/CTS-DynamicReports-PrimeVue/
 
 > All data is **dummy** (deterministic seeded generator). When the real API is
 > connected, only the data-source layer changes; the report engine and the UI
@@ -146,7 +146,7 @@ URL hash.
 
 ```bash
 npm install
-npm run dev          # http://localhost:5173/CTS_DynamicReports/
+npm run dev          # http://localhost:5173/CTS-DynamicReports-PrimeVue/
 npm run build        # production build -> dist/
 npm run preview      # preview the build locally
 npm test             # unit tests
@@ -164,7 +164,7 @@ npm run format       # prettier --check .
 .
 ├── .github/workflows/deploy.yml   # CI: test -> lint -> build -> GitHub Pages
 ├── index.html
-├── vite.config.js                 # base: /CTS_DynamicReports/ (Pages subpath)
+├── vite.config.js                 # base: /CTS-DynamicReports-PrimeVue/ (Pages subpath)
 ├── docs/
 │   └── HowWorksReports.md         # LinePulse report analysis + verified KPI formulas
 └── src/
